@@ -48,7 +48,7 @@
     {
       "path": "pages/edit-remark/index",
       "style": {
-        "navigationBarTitleText": "备注"
+        "navigationStyle": "custom"
       }
     },
     {

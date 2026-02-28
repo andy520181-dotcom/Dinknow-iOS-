@@ -45,9 +45,21 @@
             <text class="ios-cell__value">{{ region || '请选择' }}</text>
             <text class="ios-cell__chevron">›</text>
           </view>
-          <view class="ios-cell" @tap="openDuprEdit">
+          <!-- DUPR 水平：使用原生 picker，与发起活动页保持一致 -->
+          <view class="ios-cell ios-cell--tap">
             <text class="ios-cell__label">DUPR 水平</text>
-            <text class="ios-cell__value">{{ duprLevel || '请选择' }}</text>
+            <view class="ios-cell__value ios-cell__value--right">
+              <picker
+                mode="selector"
+                :range="duprOptions"
+                :value="duprIndex"
+                @change="onDuprChange"
+              >
+                <text :class="duprLevel ? 'ios-picker-text' : 'ios-cell__placeholder'">
+                  {{ duprLevel || '请选择' }}
+                </text>
+              </picker>
+            </view>
             <text class="ios-cell__chevron">›</text>
           </view>
           <view class="ios-cell" @tap="openSignatureEdit">
@@ -78,23 +90,18 @@
       </view>
     </scroll-view>
 
-    <!-- 选项 Action Sheet（性别 / 地区 / DUPR） -->
+    <!-- 选项 Action Sheet：单块白色面板从屏幕底部弹出 -->
     <view v-if="showPickerModal" class="action-sheet-mask" @tap="closePickerModal">
       <view class="action-sheet" @tap.stop>
-        <!-- 选项组 -->
-        <view class="action-sheet-group">
-          <template v-for="(item, index) in currentPickerOptions" :key="item">
-            <view class="action-sheet-item" @tap="selectPickerOption(item)">
-              <text class="action-sheet-item-text">{{ item }}</text>
-            </view>
-            <view v-if="index < currentPickerOptions.length - 1" class="action-sheet-sep" />
-          </template>
-        </view>
-        <!-- 取消 -->
-        <view class="action-sheet-group" @tap="closePickerModal">
-          <view class="action-sheet-item">
-            <text class="action-sheet-item-text action-sheet-item-text--cancel">取消</text>
+        <template v-for="(item, index) in currentPickerOptions" :key="item">
+          <view class="action-sheet-item" @tap="selectPickerOption(item)">
+            <text class="action-sheet-item-text">{{ item }}</text>
           </view>
+          <!-- NOTE: 最后一个选项后不加 sep，取消按钮用 margin-top 成为独立模块 -->
+          <view v-if="index < currentPickerOptions.length - 1" class="action-sheet-sep" />
+        </template>
+        <view class="action-sheet-item action-sheet-item--cancel" @tap="closePickerModal">
+          <text class="action-sheet-item-text action-sheet-item-text--cancel">取消</text>
         </view>
       </view>
     </view>
@@ -109,7 +116,14 @@ import { getUserActivities } from '../../services/activity'
 import type { User, Activity } from '../../types'
 
 const genderOptions = ['保密', '男', '女']
-const duprOptions = ['1.0-2.5', '3.0-3.5', '4.0-4.5', '5.0+']
+const duprOptions = ['初级 1.0-2.5', '中级 3.0-3.5', '高级 4.0-4.5', '专业级 5.0+']
+
+// NOTE: duprIndex 计算当前选中项索引，与发起活动页保持一致
+const duprIndex = computed(() => {
+  if (!duprLevel.value) return 0
+  const idx = duprOptions.indexOf(duprLevel.value)
+  return idx >= 0 ? idx : 0
+})
 
 const user = ref<User | null>(null)
 const nickName = ref('')
@@ -228,6 +242,10 @@ function openGenderEdit() {
   pickerType.value = 'gender'
   currentPickerOptions.value = genderOptions
   showPickerModal.value = true
+  // NOTE: 隐藏原生 tab bar，使 action sheet 能完整覆盖底部
+  // #ifdef MP-WEIXIN
+  ;(wx as any).hideTabBar()
+  // #endif
 }
 
 function openRegionEdit() {
@@ -238,10 +256,14 @@ function openRegionEdit() {
 }
 
 function openDuprEdit() {
-  pickerModalTitle.value = '选择 DUPR 水平'
-  pickerType.value = 'dupr'
-  currentPickerOptions.value = duprOptions
-  showPickerModal.value = true
+  // NOTE: DUPR 已改为内嵌 picker，此函数保留备用
+}
+
+function onDuprChange(e: any) {
+  // NOTE: 接收内嵌 picker 的选择结果，直接保存
+  const idx = Number(e?.detail?.value ?? 0)
+  duprLevel.value = duprOptions[idx] ?? ''
+  saveProfile()
 }
 
 async function selectPickerOption(value: string) {
@@ -253,12 +275,19 @@ async function selectPickerOption(value: string) {
   } else if (pickerType.value === 'dupr') {
     duprLevel.value = value
   }
-  await saveProfile()
   showPickerModal.value = false
+  // #ifdef MP-WEIXIN
+  ;(wx as any).showTabBar()
+  // #endif
+  await saveProfile()
 }
 
 function closePickerModal() {
   showPickerModal.value = false
+  // NOTE: 恢复原生 tab bar 显示
+  // #ifdef MP-WEIXIN
+  ;(wx as any).showTabBar()
+  // #endif
 }
 
 async function saveProfile() {
@@ -423,7 +452,7 @@ onShow(() => {
 .ios-cell {
   min-height: 60px;
   padding: 0 $ios-spacing-lg;
-  border-bottom: 1px solid $ios-separator;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -460,6 +489,23 @@ onShow(() => {
   margin-left: $ios-spacing-xs;
 }
 
+// NOTE: DUPR 内嵌 picker 文字样式，与发起活动页保持一致
+.ios-picker-text {
+  font-size: 16px;
+  color: $ios-text-primary;
+}
+
+.ios-cell__placeholder {
+  font-size: 16px;
+  color: $ios-text-tertiary;
+}
+
+.ios-cell__value--right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
 // ---- 场次统计卡片 ----
 .ios-activities-card {
   display: flex;
@@ -472,7 +518,7 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
   box-sizing: border-box;
 }
 
@@ -576,7 +622,7 @@ onShow(() => {
 
 .edit-picker-item {
   padding: $ios-spacing-md 0;
-  border-bottom: 1px solid $ios-separator;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
   font-size: 15px;
   color: $ios-text-primary;
 }
@@ -586,7 +632,7 @@ onShow(() => {
 }
 
 
-// ---- Action Sheet（iOS 原生风格） ----
+// ---- Action Sheet: 单块白色面板展示 ----------
 .action-sheet-mask {
   position: fixed;
   left: 0; right: 0; top: 0; bottom: 0;
@@ -594,20 +640,25 @@ onShow(() => {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  z-index: 1000;
+  z-index: 9999;
+  animation: maskFadeIn 0.25s ease-out;
+}
+@keyframes maskFadeIn {
+  from { background: transparent; }
+  to   { background: rgba(0, 0, 0, 0.45); }
 }
 
+// NOTE: 白色单块面板，顶部圆角，底部贴边（遮住 tab bar）
 .action-sheet {
-  padding: 0 8px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
-}
-
-// NOTE: 每一组选项独立圆角白卡，组间 8px 间距
-.action-sheet-group {
   background: #ffffff;
-  border-radius: 14px;
+  border-radius: 16px 16px 0 0;
   overflow: hidden;
-  margin-bottom: 8px;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: sheetSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
 }
 
 .action-sheet-item {
@@ -615,23 +666,14 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  &:active { background: rgba(0, 0, 0, 0.04); }
 }
 
-// NOTE: 重置微信 button 内置样式，使「用微信头像」视觉与普通选项一致
-.action-sheet-btn {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  margin: 0;
-  width: 100%;
-  line-height: 1;
-  font-size: 17px;
-  color: $ios-text-primary;
-}
-
-.action-sheet-btn::after {
-  border: none;
+// NOTE: 取消按钮独立模块，上方用 8px 间距与选项区隔开
+.action-sheet-item--cancel {
+  margin-top: 8px;
+  background: #f2f2f7;
+  border-top: none;
 }
 
 .action-sheet-item-text {
@@ -639,15 +681,13 @@ onShow(() => {
   color: $ios-text-primary;
 }
 
+// NOTE: 取消选项上方加精细分隔线与普通选项区分
 .action-sheet-item-text--cancel {
-  color: $ios-blue;
-  font-weight: $ios-font-weight-medium;
+  color: $ios-text-secondary;
 }
 
-// 选项之间的分隔线（两侧内缩 16px）
 .action-sheet-sep {
   height: 0.5px;
-  background: rgba(0, 0, 0, 0.12);
-  margin: 0 16px;
+  background: rgba(0, 0, 0, 0.04);
 }
 </style>

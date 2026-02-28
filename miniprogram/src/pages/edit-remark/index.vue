@@ -1,27 +1,31 @@
 <template>
   <view class="remark-page">
+    <!-- NOTE: 外层 padding-top 安全区，内层 row 44px 独立居中 -->
+    <view class="remark-nav">
+      <view class="remark-nav-row">
+        <view class="remark-nav-cancel" @tap="onCancel">
+          <text class="remark-nav-cancel-text">取消</text>
+        </view>
+        <text class="remark-nav-title">备注</text>
+        <view class="remark-nav-done" @tap="onDone">
+          <text class="remark-nav-done-text">完成</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 输入区域 -->
     <view class="remark-body">
-      <textarea
-        class="remark-textarea"
-        placeholder="选填，如注意事项、装备要求等"
-        placeholder-class="remark-placeholder"
-        :value="content"
-        @input="onInput"
-        :maxlength="1000"
-        auto-focus
-        auto-height
-      />
-    </view>
-
-    <!-- 字数提示 -->
-    <view class="remark-count">
-      <text class="remark-count-text">{{ content.length }}/1000</text>
-    </view>
-
-    <!-- 完成按钮 -->
-    <view class="remark-footer">
-      <button class="done-btn" @tap="handleDone">完成</button>
+      <view class="remark-input-card">
+        <textarea
+          class="remark-textarea"
+          placeholder="选填，如注意事项、装备要求等"
+          :value="content"
+          :maxlength="1000"
+          focus
+          @input="onInput"
+        />
+        <text class="remark-count">{{ content.length }}/1000</text>
+      </view>
     </view>
   </view>
 </template>
@@ -35,9 +39,13 @@ function onInput(e: any) {
   content.value = e?.detail?.value ?? ''
 }
 
-function handleDone() {
+function onDone() {
   // NOTE: 将备注保存到 storage，返回后由发起活动页 onShow 读取同步
   uni.setStorageSync('editing_activity_remark', content.value)
+  uni.navigateBack()
+}
+
+function onCancel() {
   uni.navigateBack()
 }
 
@@ -53,56 +61,81 @@ onMounted(() => {
 <style lang="scss" scoped>
 .remark-page {
   min-height: 100vh;
-  background: #f2f2f7;
+  background: $ios-bg-secondary;
   display: flex;
   flex-direction: column;
 }
 
-.remark-body {
-  margin: 16px;
+// NOTE: 外层导航栏只负责 padding-top 安全区高度
+.remark-nav {
+  padding-top: env(safe-area-inset-top);
   background: #ffffff;
-  border-radius: 12px;
-  padding: 16px;
-  flex: 1;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+}
+
+// NOTE: 内层 row 独立 44px，内容居中显示在刘海屏下方
+.remark-nav-row {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 $ios-spacing-md;
+}
+
+.remark-nav-cancel {
+  min-width: 60px;
+}
+
+.remark-nav-cancel-text {
+  font-size: 16px;
+  color: $ios-text-primary;
+}
+
+.remark-nav-title {
+  font-size: 16px;
+  font-weight: $ios-font-weight-medium;
+  color: $ios-text-primary;
+}
+
+.remark-nav-done {
+  min-width: 60px;
+  height: 30px;
+  background: $ios-blue;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.remark-nav-done-text {
+  font-size: 15px;
+  color: #ffffff;
+  font-weight: $ios-font-weight-medium;
+}
+
+.remark-body {
+  padding: $ios-spacing-md 0;
+}
+
+.remark-input-card {
+  background: #ffffff;
+  padding: $ios-spacing-md $ios-spacing-lg;
 }
 
 .remark-textarea {
   width: 100%;
-  min-height: 200px;
   font-size: 16px;
-  color: #1c1c1e;
+  color: $ios-text-primary;
+  min-height: 160px;
   line-height: 1.6;
 }
 
-.remark-placeholder {
-  color: #c7c7cc;
-  font-size: 16px;
-}
-
 .remark-count {
-  text-align: right;
-  padding: 0 20px 8px;
-}
-
-.remark-count-text {
   font-size: 13px;
-  color: #8e8e93;
-}
-
-.remark-footer {
-  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
-}
-
-.done-btn {
-  width: 100%;
-  height: 44px;
-  border-radius: 999px;
-  background: #007aff;
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: $ios-text-tertiary;
+  display: block;
+  text-align: right;
+  margin-top: $ios-spacing-xs;
 }
 </style>

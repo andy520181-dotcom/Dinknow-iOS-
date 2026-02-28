@@ -28,9 +28,18 @@
             <text class="detail-label">时间</text>
             <text class="detail-value">{{ dateTimeFullDisplay }}</text>
           </view>
-          <view class="detail-row">
+          <!-- NOTE: 地点行：文字左对齐，右侧导航按钮调起系统地图 -->
+          <view class="detail-row detail-row--location">
             <text class="detail-label">地点</text>
-            <text class="detail-value">{{ activity.venueName || activity.address || '—' }}</text>
+            <text class="detail-value detail-value--location">{{ activity.venueName || activity.address || '—' }}</text>
+            <view
+              v-if="activity.latitude && activity.longitude"
+              class="navigate-btn"
+              @tap="handleNavigate"
+            >
+              <text class="navigate-icon">📍</text>
+              <text class="navigate-text">导航</text>
+            </view>
           </view>
           <view class="detail-row">
             <text class="detail-label">DUPR 水平</text>
@@ -436,19 +445,22 @@ async function loadActivityDetail(forceRefresh = false) {
     const detail = await getActivityDetail(activityId.value)
     if (detail) {
       const prev = activity.value
-      // 保留已有 https 头像 URL，避免被新 temp URL 覆盖导致图片重载闪烁（与广场页一致）
-      const keepHostAvatar = prev?.hostAvatar && String(prev.hostAvatar).startsWith('http')
       const detailAny = detail as Record<string, unknown>
-      const merged = { ...detail, hostAvatar: keepHostAvatar ? prev!.hostAvatar : (detail.hostAvatar ?? prev?.hostAvatar) } as Record<string, unknown>
+      // NOTE: 始终使用云函数返回的最新 URL。
+      // 旧逻辑 keepHostAvatar 会保留旧 temp URL（可能已过期），导致头像失效。
+      const merged = {
+        ...detail,
+        hostAvatar: detail.hostAvatar || prev?.hostAvatar || ''
+      } as Record<string, unknown>
       merged.hostRegion = detailAny.hostRegion
       merged.hostSignature = detailAny.hostSignature
       const oldParticipants = prev?.participants || []
       merged.participants = (detail.participants || []).map((p: Record<string, unknown>) => {
         const op = oldParticipants.find((x: { userId?: string }) => x.userId === p.userId)
-        const keepUrl = op?.avatarUrl && String(op.avatarUrl).startsWith('http')
+        // NOTE: 优先用云函数返回的最新头像 URL；缺失时才回退到旧缓存
         return {
           ...p,
-          avatarUrl: (op && keepUrl) ? op.avatarUrl : (p.avatarUrl ?? op?.avatarUrl),
+          avatarUrl: (p.avatarUrl as string) || op?.avatarUrl || '',
           region: p.region,
           signature: p.signature
         }
@@ -616,6 +628,36 @@ function handleViewProfile(userId: string) {
 function closeProfileModal() {
   showProfileModal.value = false
   profileUser.value = null
+}
+
+/**
+ * 调起系统地图导航
+ * 优先使用活动坐标，若无坐标则提示用户
+ */
+function handleNavigate() {
+  const act = activity.value
+  if (!act) return
+  const lat = Number(act.latitude)
+  const lng = Number(act.longitude)
+  if (!lat || !lng) {
+    uni.showToast({ title: '暂无坐标信息', icon: 'none' })
+    return
+  }
+  const name = act.venueName || act.address || '活动地点'
+  // #ifdef MP-WEIXIN
+  ;(wx as any).openLocation({
+    latitude: lat,
+    longitude: lng,
+    name,
+    address: act.address || name,
+    scale: 16
+  })
+  // #endif
+  // #ifndef MP-WEIXIN
+  // NOTE: 非微信小程序环境（H5 等）使用腾讯地图 URL 降级
+  const url = `https://apis.map.qq.com/uri/v1/routeplan?type=drive&to=${encodeURIComponent(name)}&tocoord=${lat},${lng}&policy=1`
+  uni.navigateTo({ url: `/pages/webview/index?url=${encodeURIComponent(url)}` })
+  // #endif
 }
 
 // 点击立即报名：先弹出确认，确认后报名；报名成功后刷新详情即可看到发起人联系方式
@@ -818,11 +860,47 @@ onShareTimeline(() => {
     word-break: break-all;
   }
 
+  // NOTE: 地点文字有导航按钮时缩短，防止溢出
+  &--location {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   &--initiator {
     display: flex;
     align-items: center;
     gap: 10px;
   }
+}
+
+// NOTE: 地点导航按钮：绿色胶囊形，包含导航图标和文字
+.navigate-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: #34c759;
+  border-radius: 12px;
+  padding: 3px 10px;
+  margin-left: 8px;
+
+  &:active {
+    opacity: 0.75;
+  }
+}
+
+.navigate-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.navigate-text {
+  font-size: 13px;
+  color: #ffffff;
+  font-weight: 500;
 }
 
 .detail-initiator-avatar {

@@ -1,17 +1,19 @@
 <template>
   <view class="edit-field-page">
-    <!-- 顶部导航 -->
+    <!-- NOTE: 外层容器负责 padding-top 安全区，内层 row 独立 44px 居中 -->
     <view class="edit-field-nav">
-      <view class="edit-field-nav-cancel" @tap="onCancel">
-        <text class="edit-field-nav-cancel-text">取消</text>
-      </view>
-      <text class="edit-field-nav-title">{{ pageTitle }}</text>
-      <view
-        class="edit-field-nav-done"
-        :class="{ 'edit-field-nav-done--disabled': !inputValue.trim() }"
-        @tap="onDone"
-      >
-        <text class="edit-field-nav-done-text">完成</text>
+      <view class="edit-field-nav-row">
+        <view class="edit-field-nav-cancel" @tap="onCancel">
+          <text class="edit-field-nav-cancel-text">取消</text>
+        </view>
+        <text class="edit-field-nav-title">{{ pageTitle }}</text>
+        <view
+          class="edit-field-nav-done"
+          :class="{ 'edit-field-nav-done--disabled': !inputValue.trim() }"
+          @tap="onDone"
+        >
+          <text class="edit-field-nav-done-text">完成</text>
+        </view>
       </view>
     </view>
 
@@ -52,7 +54,7 @@ const fieldType = ref<'nickname' | 'signature'>('nickname')
 const inputValue = ref('')
 
 const pageTitle = computed(() => {
-  return fieldType.value === 'nickname' ? '设置昵称' : '设置个性签名'
+  return fieldType.value === 'nickname' ? '设置昵称' : '编辑球风'
 })
 
 const placeholder = computed(() => {
@@ -99,15 +101,20 @@ function onDone() {
   flex-direction: column;
 }
 
-// NOTE: 自定义导航栏，与微信原生导航栏高度对齐
+// NOTE: 外层导航栏只负责 padding-top 安全区高度
 .edit-field-nav {
-  height: 44px;
+  padding-top: env(safe-area-inset-top);
   background: #ffffff;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+}
+
+// NOTE: 内层 row 独立 44px，内容居中显示在刘海屏下方
+.edit-field-nav-row {
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 $ios-spacing-md;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
 }
 
 .edit-field-nav-cancel {

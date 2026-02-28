@@ -425,6 +425,8 @@ async function handleSubmit() {
       uni.setStorageSync('activity_just_published', true)
       uni.$emit('activity-created', { activityId: (result as any)?.activityId || (result as any)?._id })
       uni.showToast({ title: '发布成功', icon: 'success' })
+      // NOTE: 发布成功后重置表单内容，不包括编辑模式
+      resetForm()
     }
 
     setTimeout(() => {
@@ -435,6 +437,27 @@ async function handleSubmit() {
   } finally {
     submitting.value = false
   }
+}
+
+// NOTE: 发布成功后重置所有必填字段和选填内容
+function resetForm() {
+  title.value = ''
+  startDate.value = ''
+  startTime.value = ''
+  endTime.value = ''
+  address.value = ''
+  venueName.value = ''
+  latitude.value = undefined
+  longitude.value = undefined
+  maxParticipantsInput.value = ''
+  fee.value = ''
+  contactInfo.value = ''
+  description.value = ''
+  selectedDupr.value = ''
+  editingActivityId.value = null
+  // 清空备注缓存
+  uni.removeStorageSync('editing_activity_remark')
+  uni.removeStorageSync('editing_activity_id')
 }
 
 // 初始：加载当前用户信息 + 缓存位置 + 编辑数据 + 备注
