@@ -1,44 +1,45 @@
 <template>
   <view class="activity-card-content">
-    <!-- 活动标题 -->
-    <view class="title-row">
-      <text class="activity-title">{{ activity.title }}</text>
-    </view>
+    <!-- NOTE: 标题 + 两行信息放入同一 flex-column 容器，用统一 gap 控制行间距 -->
+    <view class="card-rows">
+      <!-- 标题行 -->
+      <view class="title-row">
+        <text class="activity-title">{{ activity.title }}</text>
+      </view>
 
-    <!-- 与发起活动页一致：时间、地点、DUPR水平、人数、费用（iOS 风格图标） -->
-    <view class="activity-info activity-info--compact">
-      <view class="info-row">
+      <!-- 第一行：时间 + 地点（强制单行，地址超长时省略） -->
+      <view class="info-row info-row--nowrap">
         <view class="info-chunk">
           <image class="info-icon-img" src="/static/icons/icon-time.png" mode="aspectFit" />
           <text class="info-text">{{ dateTimeFull }}</text>
         </view>
         <text class="info-sep">·</text>
-        <view class="info-chunk">
+        <view class="info-chunk info-chunk--venue">
           <image class="info-icon-img" src="/static/icons/icon-venue.png" mode="aspectFit" />
-          <text class="info-text">{{ activity.venueName || activity.address || '—' }}</text>
+          <text class="info-text info-text--ellipsis">{{ activity.venueName || activity.address || '—' }}</text>
         </view>
       </view>
 
-      <view class="info-row">
-        <view class="info-chunk">
-          <image class="info-icon-img" src="/static/icons/icon-dupr.png" mode="aspectFit" />
-          <text class="info-text">{{ duprLevel || '—' }}</text>
+      <!-- 第二行： DUPR + 人数 + 费用 + 报名按钮 -->
+      <view class="info-row info-row--footer">
+        <view class="info-left">
+          <view class="info-chunk">
+            <image class="info-icon-img" src="/static/icons/icon-dupr.png" mode="aspectFit" />
+            <text class="info-text">{{ duprLevel || '—' }}</text>
+          </view>
+          <text class="info-sep">·</text>
+          <view class="info-chunk">
+            <image class="info-icon-img" src="/static/icons/icon-people.png" mode="aspectFit" />
+            <text class="info-text">{{ activity.maxParticipants }}人</text>
+          </view>
+          <text class="info-sep">·</text>
+          <view class="info-chunk">
+            <image class="info-icon-img" src="/static/icons/icon-fee.png" mode="aspectFit" />
+            <text class="info-text">{{ feeText }}</text>
+          </view>
         </view>
-        <text class="info-sep">·</text>
-        <view class="info-chunk">
-          <image class="info-icon-img" src="/static/icons/icon-people.png" mode="aspectFit" />
-          <text class="info-text">{{ activity.maxParticipants }}人</text>
-        </view>
-        <text class="info-sep">·</text>
-        <view class="info-chunk">
-          <image class="info-icon-img" src="/static/icons/icon-fee.png" mode="aspectFit" />
-          <text class="info-text">{{ feeText }}</text>
-        </view>
+        <slot name="footerRight" />
       </view>
-    </view>
-
-    <view class="activity-footer">
-      <slot name="footerRight" />
     </view>
   </view>
 </template>
@@ -142,15 +143,17 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.activity-card-content {
-  display: block;
+// NOTE: 所有行放入同一 flex-column，用 gap 统一控制所有行间距
+.card-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
+// NOTE: 标题不再需要单独 margin，由父级 gap 统一控制
 .title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: $ios-spacing-md;
   min-width: 0;
 }
 
@@ -164,23 +167,18 @@ defineExpose({
   letter-spacing: -0.2px;
 }
 
-.activity-info {
-  margin-bottom: $ios-spacing-md;
-
-  &--compact {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: $ios-spacing-sm;
-  }
-}
-
 .info-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0 4px;
   row-gap: 2px;
+
+  // NOTE: 时间+地址行强制单行，地址超长时省略，不换行
+  &--nowrap {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
 }
 
 .info-chunk {
@@ -188,6 +186,14 @@ defineExpose({
   align-items: center;
   min-width: 0;
   flex-shrink: 0;
+
+  // NOTE: 地址 chunk 允许收缩，flex:1 占满剩余空间
+  &--venue {
+    flex: 1;
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+  }
 }
 
 .info-icon-img {
@@ -216,6 +222,13 @@ defineExpose({
   color: $ios-text-secondary;
   line-height: 1.5;
   min-width: 0;
+
+  // NOTE: 地址文字超长时单行省略，与 info-chunk--venue 配合使用
+  &--ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .activity-info--compact .info-text {
@@ -224,12 +237,25 @@ defineExpose({
 }
 
 .activity-footer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: $ios-spacing-md;
-  padding-top: $ios-spacing-md;
-  border-top: 1px solid $ios-separator;
+  display: none; // NOTE: footer 已更改为内联布局，此样式保留备用
 }
 
+// NOTE: 第二行：左侧 info + 右侧按钮共一行，行间距由父级 gap 统一控制
+.info-row--footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.info-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  row-gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
 </style>

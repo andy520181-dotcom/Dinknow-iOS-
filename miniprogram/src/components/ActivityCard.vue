@@ -320,9 +320,9 @@ async function handleJoinClick() {
 
 /* 头像与文案之间的分割线 */
 .card-divider {
-  height: 0;
+  height: 0.5px;
   margin: $ios-spacing-md 0;
-  border-top: 1px solid $ios-separator;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .card-avatar-item {
@@ -398,31 +398,34 @@ async function handleJoinClick() {
   color: $ios-text-tertiary;
 }
 
+// NOTE: 报名按钮内联在第二行右侧，改为紧凑小胶囊形式
 .join-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  padding: 0 20px;
-  height: 44px;
+  flex-shrink: 0;
+  width: auto;
+  padding: 0 14px;
+  height: 30px;
+  min-height: 30px;
   background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
   color: #fff;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: $ios-font-weight-semibold;
-  border-radius: 22px;
+  border-radius: 15px;
   border: none;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.28);
+  line-height: 1;
 
   &::after {
     border: none;
   }
-  
+
   &:active {
     opacity: 0.85;
-    transform: scale(0.98);
+    transform: scale(0.97);
   }
-  
+
   &.join-btn--disabled {
     background: $ios-bg-tertiary;
     color: $ios-text-tertiary;
@@ -436,7 +439,7 @@ async function handleJoinClick() {
 }
 
 .join-text-in-btn {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: $ios-font-weight-semibold;
   color: #fff;
 }

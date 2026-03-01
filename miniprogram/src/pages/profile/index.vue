@@ -5,7 +5,7 @@
 
         <!-- 头像卡片：居中头像 + 编辑徽章 + 用户名 -->
         <view class="ios-section profile-avatar-card">
-          <!-- NOTE: 直接用微信官方 open-type=chooseAvatar，弹出唹含微信头像/相册/拍照/取消的原生选择器 -->
+          <!-- NOTE: 直接用微信官方 open-type=chooseAvatar，弹出包含微信头像/相册/拍照/取消的原生选择器 -->
           <button
             class="profile-avatar-circle"
             open-type="chooseAvatar"
@@ -197,7 +197,8 @@ async function loadProfileAndActivities() {
 function handleChooseAvatar() {
   uni.chooseImage({
     count: 1,
-    sizeType: ['compressed'],
+    // NOTE: 必须用 original 原图，compressed 会导致头像模糊（原图可达 1000px+，compressed 仅 132px）
+    sizeType: ['original'],
     sourceType: ['album', 'camera'],
     success: async (res) => {
       const path = res.tempFilePaths?.[0]
@@ -251,7 +252,7 @@ function openGenderEdit() {
 function openRegionEdit() {
   // NOTE: 复用广场页城市选择器，fromProfile=true 时选结果写入 profile_region storage
   uni.navigateTo({
-    url: `/pages/city-select/index?from=profile¤tCity=${encodeURIComponent(region.value || '')}`
+    url: `/pages/city-select/index?from=profile&currentCity=${encodeURIComponent(region.value || '')}`
   })
 }
 
@@ -387,8 +388,8 @@ onShow(() => {
 // NOTE: 圆圈容器，overflow:hidden 将底部半圆编辑遞罩裁切出圆彧
 .profile-avatar-circle {
   position: relative;
-  width: 110px;
-  height: 110px;
+  width: 130px;
+  height: 130px;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
@@ -407,13 +408,13 @@ onShow(() => {
 }
 
 .profile-avatar {
-  width: 110px;
-  height: 110px;
+  width: 130px;
+  height: 130px;
 }
 
 .profile-avatar--placeholder {
-  width: 110px;
-  height: 110px;
+  width: 130px;
+  height: 130px;
   background: $ios-bg-tertiary;
   display: flex;
   align-items: center;

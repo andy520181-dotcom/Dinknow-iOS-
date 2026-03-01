@@ -1,15 +1,12 @@
 <template>
   <view class="remark-page">
-    <!-- NOTE: 外层 padding-top 安全区，内层 row 44px 独立居中 -->
-    <view class="remark-nav">
-      <view class="remark-nav-row">
-        <view class="remark-nav-cancel" @tap="onCancel">
-          <text class="remark-nav-cancel-text">取消</text>
-        </view>
-        <text class="remark-nav-title">备注</text>
-        <view class="remark-nav-done" @tap="onDone">
-          <text class="remark-nav-done-text">完成</text>
-        </view>
+    <!-- NOTE: 原生导航栏显示"备注"标题，取消/完成按钮在下方独立一行，不会被微信胶囊遮挡 -->
+    <view class="remark-actions">
+      <view class="remark-action-btn" @tap="onCancel">
+        <text class="remark-action-text remark-action-text--cancel">取消</text>
+      </view>
+      <view class="remark-action-btn remark-action-btn--done" @tap="onDone">
+        <text class="remark-action-text remark-action-text--done">完成</text>
       </view>
     </view>
 
@@ -66,52 +63,39 @@ onMounted(() => {
   flex-direction: column;
 }
 
-// NOTE: 外层导航栏只负责 padding-top 安全区高度
-.remark-nav {
-  padding-top: env(safe-area-inset-top);
-  background: #ffffff;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
-}
-
-// NOTE: 内层 row 独立 44px，内容居中显示在刘海屏下方
-.remark-nav-row {
-  height: 44px;
+// NOTE: 取消/完成按钮行，紧贴原生导航栏下方，两端对齐
+.remark-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 $ios-spacing-md;
+  padding: $ios-spacing-sm $ios-spacing-lg;
+  background: #ffffff;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
 }
 
-.remark-nav-cancel {
-  min-width: 60px;
-}
-
-.remark-nav-cancel-text {
-  font-size: 16px;
-  color: $ios-text-primary;
-}
-
-.remark-nav-title {
-  font-size: 16px;
-  font-weight: $ios-font-weight-medium;
-  color: $ios-text-primary;
-}
-
-.remark-nav-done {
-  min-width: 60px;
-  height: 30px;
-  background: $ios-blue;
-  border-radius: 6px;
-  display: flex;
+.remark-action-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 0 12px;
+  padding: 6px 4px;
+
+  &--done {
+    background: $ios-blue;
+    border-radius: 8px;
+    padding: 6px 16px;
+  }
 }
 
-.remark-nav-done-text {
-  font-size: 15px;
-  color: #ffffff;
-  font-weight: $ios-font-weight-medium;
+.remark-action-text {
+  font-size: 16px;
+
+  &--cancel {
+    color: $ios-text-primary;
+  }
+
+  &--done {
+    color: #ffffff;
+    font-weight: $ios-font-weight-medium;
+  }
 }
 
 .remark-body {

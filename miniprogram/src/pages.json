@@ -10,7 +10,8 @@
     {
       "path": "pages/create-activity/index",
       "style": {
-        "navigationBarTitleText": "发起活动"
+        "navigationBarTitleText": "发起活动",
+        "disableScroll": true
       }
     },
     {
@@ -48,13 +49,19 @@
     {
       "path": "pages/edit-remark/index",
       "style": {
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "备注"
       }
     },
     {
       "path": "pages/edit-text-field/index",
       "style": {
-        "navigationStyle": "custom"
+        "navigationBarTitleText": ""
+      }
+    },
+    {
+      "path": "pages/disclaimer/index",
+      "style": {
+        "navigationBarTitleText": "免责声明"
       }
     }
   ],

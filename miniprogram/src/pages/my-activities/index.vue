@@ -10,7 +10,7 @@
       <view
         v-for="activity in list"
         :key="activity._id"
-        class="activity-card-wrap"
+        :class="['activity-card-wrap', { 'activity-card-wrap--ended': isActivityEnded(activity) }]"
         @tap="handleViewActivity(activity)"
       >
         <ActivityCard
@@ -382,6 +382,12 @@ async function handleLeaveActivity(activity: Activity) {
 
 .activity-card-wrap {
   display: block;
+
+  // NOTE: 已过期活动卡片用极浅灰色背景，直观区分进行中和已结束的活动
+  &--ended :deep(.activity-card) {
+    background: #eaeaef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
 }
 
 .card-top-right-placeholder {
@@ -433,10 +439,11 @@ async function handleLeaveActivity(activity: Activity) {
   }
 
   &.edit-btn--disabled {
-    background: $ios-bg-tertiary;
+    background: transparent;
     color: $ios-text-tertiary;
     box-shadow: none;
-    opacity: 0.8;
+    border: 1px solid $ios-separator;
+    opacity: 0.9;
   }
 }
 

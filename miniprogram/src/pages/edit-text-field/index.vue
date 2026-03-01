@@ -1,19 +1,16 @@
 <template>
   <view class="edit-field-page">
-    <!-- NOTE: 外层容器负责 padding-top 安全区，内层 row 独立 44px 居中 -->
-    <view class="edit-field-nav">
-      <view class="edit-field-nav-row">
-        <view class="edit-field-nav-cancel" @tap="onCancel">
-          <text class="edit-field-nav-cancel-text">取消</text>
-        </view>
-        <text class="edit-field-nav-title">{{ pageTitle }}</text>
-        <view
-          class="edit-field-nav-done"
-          :class="{ 'edit-field-nav-done--disabled': !inputValue.trim() }"
-          @tap="onDone"
-        >
-          <text class="edit-field-nav-done-text">完成</text>
-        </view>
+    <!-- NOTE: 原生导航栏显示页面标题，取消/完成按钮在导航栏下方独立一行，避免被微信胶囊按钮遮挡 -->
+    <view class="edit-field-actions">
+      <view class="edit-field-action-btn" @tap="onCancel">
+        <text class="edit-field-action-text edit-field-action-text--cancel">取消</text>
+      </view>
+      <view
+        class="edit-field-action-btn edit-field-action-btn--done"
+        :class="{ 'edit-field-action-btn--disabled': !inputValue.trim() }"
+        @tap="onDone"
+      >
+        <text class="edit-field-action-text edit-field-action-text--done">完成</text>
       </view>
     </view>
 
@@ -72,6 +69,9 @@ onMounted(() => {
   const options = currentPage?.options ?? {}
   fieldType.value = (options.type === 'signature' ? 'signature' : 'nickname')
   inputValue.value = decodeURIComponent(options.value ?? '')
+
+  // NOTE: 动态设置原生导航栏标题
+  uni.setNavigationBarTitle({ title: pageTitle.value })
 })
 
 function onInput(e: any) {
@@ -101,56 +101,43 @@ function onDone() {
   flex-direction: column;
 }
 
-// NOTE: 外层导航栏只负责 padding-top 安全区高度
-.edit-field-nav {
-  padding-top: env(safe-area-inset-top);
-  background: #ffffff;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
-}
-
-// NOTE: 内层 row 独立 44px，内容居中显示在刘海屏下方
-.edit-field-nav-row {
-  height: 44px;
+// NOTE: 取消/完成按钮行，紧贴原生导航栏下方，两端对齐
+.edit-field-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 $ios-spacing-md;
+  padding: $ios-spacing-sm $ios-spacing-lg;
+  background: #ffffff;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
 }
 
-.edit-field-nav-cancel {
-  min-width: 60px;
-}
-
-.edit-field-nav-cancel-text {
-  font-size: 16px;
-  color: $ios-text-primary;
-}
-
-.edit-field-nav-title {
-  font-size: 16px;
-  font-weight: $ios-font-weight-medium;
-  color: $ios-text-primary;
-}
-
-.edit-field-nav-done {
-  min-width: 60px;
-  height: 30px;
-  background: $ios-blue;
-  border-radius: 6px;
-  display: flex;
+.edit-field-action-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 0 12px;
+  padding: 6px 4px;
+
+  &--done {
+    background: $ios-blue;
+    border-radius: 8px;
+    padding: 6px 16px;
+
+    &.edit-field-action-btn--disabled {
+      background: $ios-text-tertiary;
+    }
+  }
 }
 
-.edit-field-nav-done--disabled {
-  background: $ios-text-tertiary;
-}
+.edit-field-action-text {
+  font-size: 16px;
 
-.edit-field-nav-done-text {
-  font-size: 15px;
-  color: #ffffff;
-  font-weight: $ios-font-weight-medium;
+  &--cancel {
+    color: $ios-text-primary;
+  }
+
+  &--done {
+    color: #ffffff;
+    font-weight: $ios-font-weight-medium;
+  }
 }
 
 .edit-field-body {

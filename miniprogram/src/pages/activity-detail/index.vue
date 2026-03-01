@@ -98,11 +98,21 @@
         </view>
       </view>
 
-      <!-- 第三部分：底部立即报名按钮，确认报名成功后可见发起人联系方式 -->
+      <!-- 第三部分：底部固定报名区（免责声明 + 立即报名按钮） -->
       <view v-if="!isEnded && canJoin" class="join-section">
+        <!-- NOTE: 免责声明勾选行，与发起活动页样式完全一致 -->
+        <view class="join-disclaimer-row">
+          <view class="join-disclaimer-checkbox" @tap="disclaimerAccepted = !disclaimerAccepted">
+            <view class="join-disclaimer-inner" :class="{ 'join-disclaimer-inner--checked': disclaimerAccepted }">
+              <text v-if="disclaimerAccepted" class="join-disclaimer-check-icon">✓</text>
+            </view>
+          </view>
+          <text class="join-disclaimer-label">我已仔细阅读并同意</text>
+          <text class="join-disclaimer-link" @tap.stop="goToDisclaimer">《免责声明》</text>
+        </view>
         <button 
           class="join-btn" 
-          :disabled="joining || isFull"
+          :disabled="joining || isFull || !disclaimerAccepted"
           @tap="handleJoinTap"
         >
           <text v-if="joining">报名中...</text>
@@ -128,11 +138,13 @@
         <view class="profile-modal-content" :key="'profile-' + (profileUser?.openid || '') + '-' + (profileUser?.region ?? '') + '-' + (profileUser?.signature ?? '')">
           <template v-if="profileUser">
             <view class="profile-avatar-section">
+              <!-- NOTE: 点击头像调起微信内置大图预览 -->
               <image
                 v-if="profileUser.avatarUrl"
                 :src="getCloudImageUrl(profileUser.avatarUrl)"
                 class="profile-modal-avatar"
                 mode="aspectFill"
+                @tap="previewProfileAvatar"
               />
               <view v-else class="profile-modal-avatar-placeholder">
                 <text class="avatar-placeholder-icon-large">👤</text>
@@ -181,6 +193,13 @@ const activityId = ref<string>('')
 const activity = ref<Activity | null>(null)
 const loading = ref(true)
 const joining = ref(false)
+// NOTE: 报名前必须勾选免责声明，与发起活动页逻辑一致
+const disclaimerAccepted = ref(false)
+
+// NOTE: 跳转到独立免责声明页面
+function goToDisclaimer() {
+  uni.navigateTo({ url: '/pages/disclaimer/index' })
+}
 const currentUser = ref<User | null>(null)
 const currentUserLoading = ref(false) // 当前用户信息加载状态
 const showProfileModal = ref(false)
@@ -212,7 +231,8 @@ const displayedParticipants = computed(() => {
     nickName: p.nickName,
     isHost: false
   })))
-  return list.slice(0, MAX_AVATAR_DISPLAY)
+  // NOTE: 详情页显示全部参与人员，不做数量限制（广场页限 18 个）
+  return list
 })
 /** 超出 18 个后的多出人数 */
 const overflowCount = computed(() => {
@@ -631,6 +651,18 @@ function closeProfileModal() {
 }
 
 /**
+ * 点击弹层头像、调起微信内置大图预览
+ */
+function previewProfileAvatar() {
+  const url = profileUser.value?.avatarUrl
+  if (!url) return
+  const src = getCloudImageUrl(url)
+  // #ifdef MP-WEIXIN
+  ;(wx as any).previewImage({ current: src, urls: [src] })
+  // #endif
+}
+
+/**
  * 调起系统地图导航
  * 优先使用活动坐标，若无坐标则提示用户
  */
@@ -792,7 +824,8 @@ onShareTimeline(() => {
 .detail-page {
   min-height: 100vh;
   background: $ios-bg-secondary;
-  padding-bottom: calc(82px + env(safe-area-inset-bottom)); // 为固定按钮留出空间
+  // NOTE: 底部留白加高，为免责声明行 + 报名按钮的固定浮层留出足够空间
+  padding-bottom: calc(120px + env(safe-area-inset-bottom));
 }
 
 .loading-container,
@@ -1102,16 +1135,16 @@ onShareTimeline(() => {
 }
 
 .profile-modal-avatar {
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   border: 3px solid $ios-separator;
   background: $ios-bg-tertiary;
 }
 
 .profile-modal-avatar-placeholder {
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   background: $ios-bg-tertiary;
   border: 3px solid $ios-separator;
@@ -1202,8 +1235,53 @@ onShareTimeline(() => {
   }
 }
 
-.detail-page {
-  padding-bottom: calc(82px + env(safe-area-inset-bottom)); // 为固定按钮留出空间
+// NOTE: 免责声明行样式，与 create-activity 页完全一致
+.join-disclaimer-row {
+  display: flex;
+  align-items: center;
+  padding: $ios-spacing-xs $ios-spacing-lg;
+  margin-bottom: $ios-spacing-xs;
+}
+
+.join-disclaimer-checkbox {
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.join-disclaimer-inner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid $ios-separator;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+
+  &--checked {
+    background: $ios-blue;
+    border-color: $ios-blue;
+  }
+}
+
+.join-disclaimer-check-icon {
+  font-size: 13px;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.join-disclaimer-label {
+  font-size: 13px;
+  color: $ios-text-secondary;
+}
+
+.join-disclaimer-link {
+  font-size: 13px;
+  color: $ios-blue;
+  font-weight: $ios-font-weight-medium;
 }
 
 </style>

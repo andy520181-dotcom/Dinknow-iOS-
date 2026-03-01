@@ -1,8 +1,7 @@
 <template>
   <view class="create-page">
-    <!-- 表单主体 -->
-    <scroll-view class="create-scroll" scroll-y>
-      <view class="ios-form">
+    <!-- 表单主体（固定布局，一屏显示，无需滚动） -->
+    <view class="ios-form">
         <!-- 左上角返回按钮（独立于卡片之外） -->
         <view class="create-back-row" @tap="handleBack">
           <text class="create-back-icon">‹</text>
@@ -136,8 +135,18 @@
           </view>
         </view>
 
+    </view>
+
+    <!-- NOTE: 免责声明勾选行在表单区和发布按钮之间，固定可见 -->
+    <view class="disclaimer-row">
+      <view class="disclaimer-checkbox" @tap="disclaimerAccepted = !disclaimerAccepted">
+        <view class="disclaimer-checkbox-inner" :class="{ 'disclaimer-checkbox-inner--checked': disclaimerAccepted }">
+          <text v-if="disclaimerAccepted" class="disclaimer-check-icon">✓</text>
+        </view>
       </view>
-    </scroll-view>
+      <text class="disclaimer-label">我已仔细阅读并同意</text>
+      <text class="disclaimer-link" @tap.stop="goToDisclaimer">《免责声明》</text>
+    </view>
 
     <!-- 底部发布按钮 -->
     <view class="create-footer">
@@ -150,6 +159,7 @@
       </view>
     </view>
   </view>
+
 </template>
 
 
@@ -161,6 +171,14 @@ import { getProfile } from '../../services/user'
 import { chooseLocation, getUserLocation } from '../../utils/location'
 import type { LocationInfo, User } from '../../types'
 import { STORAGE_USER_LOCATION } from '../../constants'
+
+
+const disclaimerAccepted = ref(false)
+
+// NOTE: 点击蓝色《免责声明》文字跳转到独立的免责声明页面
+function goToDisclaimer() {
+  uni.navigateTo({ url: '/pages/disclaimer/index' })
+}
 
 const title = ref('')
 const startDate = ref('')
@@ -189,7 +207,9 @@ const canSubmit = computed(() =>
   maxParticipantsInput.value.trim().length > 0 &&
   Number(maxParticipantsInput.value) > 0 &&
   fee.value.trim().length > 0 &&
-  contactInfo.value.trim().length > 0
+  contactInfo.value.trim().length > 0 &&
+  // NOTE: 必须勾选免责声明才能发布
+  disclaimerAccepted.value
 )
 
 const duprLevels = ['初级 1.0-2.5', '中级 3.0-3.5', '高级 4.0-4.5', '专业级 5.0+']
@@ -505,24 +525,33 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .create-page {
-  min-height: 100vh;
+  // NOTE: 固定为一屏高度，禁止整页滚动，内容分层 flex 排列
+  // NOTE: 小程序中 page 容器已去除导航栏高度，用 100% 准确填满可视区域
+  height: 100%;
   background: $ios-bg-secondary;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .create-scroll {
   flex: 1;
+  overflow: hidden;
 }
 
 .ios-form {
-  padding-bottom: $ios-spacing-xl;
+  // NOTE: flex:1 让表单区自动占满剩余空间，不设固定底部 padding
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .ios-section {
   background: $ios-bg-primary;
   border-radius: 0;
-  margin-bottom: $ios-spacing-lg;
+  // NOTE: 缩小 section 间距，适配一屏显示
+  margin-bottom: $ios-spacing-sm;
   overflow: hidden;
 }
 
@@ -550,8 +579,9 @@ onShow(() => {
 }
 
 .ios-initiator__avatar {
-  width: 56px;
-  height: 56px;
+  // NOTE: 缩小头像尺寸以节省垂直空间
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
   margin-right: $ios-spacing-xs;
@@ -569,6 +599,7 @@ onShow(() => {
 }
 
 .ios-cell {
+  // NOTE: 每个标题栏保持 60px 高度，保证各行间距一致
   min-height: 60px;
   padding: 0 $ios-spacing-lg;
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.04);
@@ -722,8 +753,10 @@ onShow(() => {
 }
 
 .create-footer {
-  padding: $ios-spacing-md $ios-spacing-lg calc($ios-spacing-xl + env(safe-area-inset-bottom));
+  // NOTE: 缩减底部按钮区域上下间距，紧贴表单，适配不同屏幕高度
+  padding: $ios-spacing-sm $ios-spacing-lg calc($ios-spacing-md + env(safe-area-inset-bottom));
   background: $ios-bg-secondary;
+  flex-shrink: 0;
 }
 
 .primary-btn {
@@ -743,4 +776,57 @@ onShow(() => {
 .primary-btn--disabled {
   background: #8e8e93;
 }
+// NOTE: 免责声明勾选行已移入 scroll-view 内容区底部，融入表单流；
+// 去掉独立背景，使用与表单一致的左右边距
+.disclaimer-row {
+  display: flex;
+  align-items: center;
+  // NOTE: 免责声明行收紧 padding，减少垂直占用
+  padding: $ios-spacing-xs $ios-spacing-lg;
+  flex-shrink: 0;
+}
+
+.disclaimer-checkbox {
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.disclaimer-checkbox-inner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid $ios-separator;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+
+  &--checked {
+    background: $ios-blue;
+    border-color: $ios-blue;
+  }
+}
+
+.disclaimer-check-icon {
+  font-size: 13px;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.disclaimer-label {
+  font-size: 13px;
+  color: $ios-text-secondary;
+}
+
+.disclaimer-link {
+  font-size: 13px;
+  color: $ios-blue;
+  font-weight: $ios-font-weight-medium;
+}
+
+// NOTE: 弹层已改为独立页面（pages/disclaimer/index）
+// 以下弹层相关样式已全部移除
 </style>
