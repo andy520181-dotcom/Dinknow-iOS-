@@ -15,15 +15,12 @@
     "permission": {
       "scope.userLocation": {
         "desc": "你的位置信息将用于显示附近的匹克球活动与计算距离"
-      },
-      "scope.album": {
-        "desc": "用于选择相册中的图片作为头像"
-      },
-      "scope.camera": {
-        "desc": "用于拍摄照片作为头像"
       }
     },
     "__usePrivacyCheck__": true,
-    "requiredPrivateInfos": ["getLocation", "chooseLocation"]
+    "requiredPrivateInfos": [
+      "getLocation",
+      "chooseLocation"
+    ]
   }
 }

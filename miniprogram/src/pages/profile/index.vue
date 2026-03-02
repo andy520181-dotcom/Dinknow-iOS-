@@ -58,29 +58,39 @@
     <scroll-view v-else class="profile-scroll" scroll-y>
       <view class="profile-body">
 
-        <!-- 头像卡片：居中头像 + 编辑徽章 + 用户名 -->
+        <!-- NOTE: 头像卡片横排：左侧头像，右侧昵称 + DUPR 水平 -->
         <view class="ios-section profile-avatar-card">
-          <!-- NOTE: 直接用微信官方 open-type=chooseAvatar，弹出包含微信头像/相册/拍照/取消的原生选择器 -->
-          <button
-            class="profile-avatar-circle"
-            open-type="chooseAvatar"
-            @chooseavatar="onChooseAvatar"
-          >
-            <image
-              v-if="avatarUrl"
-              class="profile-avatar"
-              :src="avatarUrl"
-              mode="aspectFill"
-            />
-            <view v-else class="profile-avatar profile-avatar--placeholder">
-              <text class="profile-avatar-icon">👤</text>
+          <!-- NOTE: wrapper 相对定位，让编辑小圆点脱离 button overflow:hidden 范围，直接叠加在头像右下角 -->
+          <view class="profile-avatar-wrap">
+            <button
+              class="profile-avatar-circle"
+              open-type="chooseAvatar"
+              @chooseavatar="onChooseAvatar"
+            >
+              <image
+                v-if="avatarUrl"
+                class="profile-avatar"
+                :src="avatarUrl"
+                mode="aspectFill"
+              />
+              <view v-else class="profile-avatar profile-avatar--placeholder">
+                <text class="profile-avatar-icon">👤</text>
+              </view>
+            </button>
+            <!-- NOTE: 编辑头像按鈕，使用 edit-avatar.png -->
+            <view class="profile-edit-dot">
+              <image class="profile-edit-dot-icon" src="/static/icons/edit-avatar.png" mode="aspectFit" />
             </view>
-            <!-- 半圆编辑徽章 -->
-            <view class="profile-edit-badge">
-              <text class="profile-edit-badge-text">编辑</text>
+          </view>
+          <!-- 右侧信息区：昵称 + DUPR 水平 -->
+          <view class="profile-info-right">
+            <text class="profile-username">{{ nickName || '微信用户' }}</text>
+            <!-- NOTE: DUPR 图标与信息卡片 DUPR 行保持一致，使用相同的 dupr.png -->
+            <view class="profile-dupr-row">
+              <image class="profile-dupr-icon" src="/static/icons/dupr.png" mode="aspectFit" />
+              <text class="profile-dupr-label">{{ duprLevel || '暂未设置 DUPR 水平' }}</text>
             </view>
-          </button>
-          <text class="profile-username">{{ nickName || '微信用户' }}</text>
+          </view>
         </view>
 
         <!-- 信息卡片 -->
@@ -206,6 +216,22 @@ const myJoined = ref<Activity[]>([])
 
 const saving = ref(false)
 
+// NOTE: cloud:// fileID 无法被渲染层直接加载，需转换为 HTTP 临时 URL
+// 已是 http/https 的直接返回，避免无谓的 API 调用
+async function resolveCloudUrl(fileID: string): Promise<string> {
+  if (!fileID) return ''
+  if (fileID.startsWith('http')) return fileID
+  try {
+    // #ifdef MP-WEIXIN
+    const res = await (wx as any).cloud.getTempFileURL({ fileList: [fileID] })
+    return res?.fileList?.[0]?.tempFileURL || fileID
+    // #endif
+    return fileID
+  } catch {
+    return fileID
+  }
+}
+
 // NOTE: 登录状态，false 时展示登录界面
 const isLoggedIn = ref(false)
 // NOTE: 登录状态检查中（初始为 true），检查期间页面显示空白，避免已登录用户看到登录页闪烁
@@ -304,7 +330,7 @@ async function onChooseAvatar(e: any) {
     // #ifdef MP-WEIXIN
     const cloudPath = `avatars/${Date.now()}-wechat.jpg`
     const uploadRes = await (wx as any).cloud.uploadFile({ cloudPath, filePath: tempPath })
-    avatarUrl.value = uploadRes.fileID
+    avatarUrl.value = await resolveCloudUrl(uploadRes.fileID)
     await saveProfile()
     // #endif
   } catch (err) {
@@ -337,7 +363,8 @@ async function loadProfileAndActivities() {
       if (profile) {
         user.value = profile
         nickName.value = profile.nickName || ''
-        avatarUrl.value = profile.avatarUrl || ''
+        // NOTE: cloud:// fileID 转换为可访问的 HTTP 临时 URL，避免渲染层网络错误
+        avatarUrl.value = await resolveCloudUrl(profile.avatarUrl || '')
         // NOTE: gender > 0（男/女）才算用户主动设置过；gender === 0 是默认值，仍显示「请选择」
         if (typeof profile.gender === 'number' && profile.gender > 0) {
           gender.value = profile.gender as 0 | 1 | 2
@@ -532,7 +559,8 @@ onShow(() => {
 <style lang="scss" scoped>
 .profile-page {
   min-height: 100vh;
-  background: $ios-bg-secondary;
+  // NOTE: 顶部使用广场页蓝色 $ios-blue (#007AFF) 渐变到底部白色
+  background: linear-gradient(180deg, #007AFF 0%, #4DA6FF 20%, #C2E0FF 45%, #EBF5FF 65%, #FFFFFF 100%);
   display: flex;
   flex-direction: column;
 }
@@ -547,33 +575,46 @@ onShow(() => {
 
 // ---- 卡片基础 ----
 .ios-section {
-  background: $ios-bg-primary;
+  background: #ffffff;
+  // NOTE: 卡片全宽贴边，无左右边距和阴影
   border-radius: 0;
-  margin-bottom: $ios-spacing-lg;
+  margin: 0 0 $ios-spacing-lg;
   overflow: hidden;
 }
 
 // ---- 头像卡片 ----
+// NOTE: 头像区域透明，露出蓝色渐变背景；横排布局：左头像 + 右侧信息
 .profile-avatar-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  margin: 0 0 $ios-spacing-sm;
+  border-radius: 0 !important;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  padding: $ios-spacing-xl 0 $ios-spacing-lg;
+  padding: $ios-spacing-lg $ios-spacing-lg;
+  gap: $ios-spacing-md;
 }
 
+// NOTE: 右侧信息竖排：昵称 + DUPR 水平
+.profile-info-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+// NOTE: 头像 wrapper，relative 定位用于承载右下角绝对定位的编辑圆点
 .profile-avatar-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: $ios-spacing-sm;
-  // NOTE: tap 区域包含圈外和昵称，实际点击选头像由内层 profile-avatar-circle 处理
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
 }
 
-// NOTE: 圆圈容器，overflow:hidden 将底部半圆编辑遞罩裁切出圆彧
+// NOTE: 圆圈容器，overflow:hidden 裁切头像为圆形
 .profile-avatar-circle {
   position: relative;
-  width: 130px;
-  height: 130px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
@@ -583,7 +624,6 @@ onShow(() => {
   background: transparent;
   border: none;
   box-sizing: border-box;
-  // NOTE: 轻阴影与其他页面头像风格统一
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   display: block;
 }
@@ -594,13 +634,13 @@ onShow(() => {
 }
 
 .profile-avatar {
-  width: 130px;
-  height: 130px;
+  width: 80px;
+  height: 80px;
 }
 
 .profile-avatar--placeholder {
-  width: 130px;
-  height: 130px;
+  width: 80px;
+  height: 80px;
   background: $ios-bg-tertiary;
   display: flex;
   align-items: center;
@@ -611,28 +651,53 @@ onShow(() => {
   font-size: 40px;
 }
 
-// NOTE: 绝对定位在圆圈底部，父元素 overflow:hidden 自动裁切为半圆
-.profile-edit-badge {
+// NOTE: 编辑图标容器，浅蓝色圆形背景与页面蓝色渐变协调
+.profile-edit-dot {
   position: absolute;
   bottom: 0;
-  left: 0;
   right: 0;
-  height: 28px;
-  background: rgba(100, 100, 108, 0.65);
+  width: 26px;
+  height: 26px;
+  background: #5AABF5;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.profile-edit-badge-text {
-  font-size: 13px;
-  color: #ffffff;
+.profile-edit-dot-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .profile-username {
-  font-size: 17px;
-  color: $ios-text-primary;
-  margin-top: $ios-spacing-sm;
+  font-size: 18px;
+  font-weight: $ios-font-weight-medium;
+  // NOTE: 白色文字，在蓝色渐变背景上清晰可读
+  color: #ffffff;
+}
+
+// NOTE: DUPR 行横排容器：图标 + 文字对齐
+.profile-dupr-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// NOTE: 头像卡片中 DUPR 图标，与信息卡片行图标视觉一致，尺寸略小以匹配副标题字号
+.profile-dupr-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  // NOTE: filter 将任意颜色图标强制渲染为纯白，opacity 与文字透明度保持一致
+  filter: brightness(0) invert(1);
+  opacity: 0.82;
+}
+
+// NOTE: DUPR 水平副标题，半透明白色，视觉层级低于昵称
+.profile-dupr-label {
+  font-size: 13px;
+  color: #ffffff;
 }
 
 // ---- 信息列表 ----
