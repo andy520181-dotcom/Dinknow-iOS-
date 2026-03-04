@@ -1,0 +1,14 @@
+{
+  "libVersion": "3.14.3",
+  "projectname": "Dinknow%EF%BC%88IOS%E9%A3%8E%E6%A0%BC%EF%BC%89",
+  "setting": {
+    "urlCheck": true,
+    "coverView": true,
+    "lazyloadPlaceholderEnable": false,
+    "skylineRenderEnable": false,
+    "preloadBackgroundData": false,
+    "autoAudits": false,
+    "showShadowRootInWxmlPanel": true,
+    "compileHotReLoad": true
+  }
+}

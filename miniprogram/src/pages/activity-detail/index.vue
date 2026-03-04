@@ -10,13 +10,17 @@
           <view class="detail-row detail-row--initiator" @tap="handleViewProfile(activity.hostId)">
             <text class="detail-label">发起人</text>
             <view class="detail-value detail-value--initiator">
-              <image
-                v-if="activity.hostAvatar"
-                :src="getCloudImageUrl(activity.hostAvatar)"
-                class="detail-initiator-avatar"
-                mode="aspectFill"
-              />
-              <view v-else class="detail-initiator-avatar detail-initiator-avatar--placeholder">👤</view>
+              <!-- NOTE: 始终显示占位灰圆，图片加载完成后淡入，避免 src 变化导致图片闪一下 -->
+              <view class="detail-initiator-avatar-wrap">
+                <image
+                  v-if="activity.hostAvatar"
+                  :src="getCloudImageUrl(activity.hostAvatar)"
+                  class="detail-initiator-avatar"
+                  :class="{ 'detail-initiator-avatar--loaded': hostAvatarLoaded }"
+                  mode="aspectFill"
+                  @load="hostAvatarLoaded = true"
+                />
+              </view>
               <text class="detail-initiator-name">{{ activity.hostName || '微信用户' }}</text>
             </view>
           </view>
@@ -55,20 +59,37 @@
           </view>
           <view class="detail-row">
             <text class="detail-label">联系方式</text>
-            <text v-if="hasJoined && activity.contactInfo" class="detail-value">{{ activity.contactInfo }}</text>
+            <!-- NOTE: 报名后显示联系方式，并根据 contactType 加前缀；兼容旧数据无 contactType 时用纯数字判断 -->
+            <view v-if="hasJoined && activity.contactInfo" class="detail-contact-row">
+              <text class="detail-contact-type">{{ activity.contactType === 'wechat' ? '微信' : '手机' }}</text>
+              <text class="detail-value">{{ activity.contactInfo }}</text>
+            </view>
             <text v-else class="detail-value detail-value--muted">报名成功后可见</text>
           </view>
-          <view v-if="activity.description" class="detail-row">
-            <text class="detail-label">备注</text>
-            <text class="detail-value detail-value--desc">{{ activity.description }}</text>
+          <view v-if="activity.description || (activity as any).images?.length" class="detail-remark-section">
+            <text class="detail-label detail-label--remark">备注</text>
+            <view class="detail-remark-wrap">
+              <text v-if="activity.description" class="detail-value--desc">{{ activity.description }}</text>
+              <view v-if="(activity as any).images?.length" class="remark-images" :class="{ 'remark-images--single': (activity as any).images.length === 1 }">
+                <view
+                  v-for="(img, idx) in (activity as any).images"
+                  :key="idx"
+                  class="remark-img-wrap"
+                  @tap="previewRemarkImage(idx)"
+                >
+                  <image :src="img" class="remark-img" mode="aspectFill" />
+                </view>
+              </view>
+            </view>
           </view>
         </view>
       </view>
 
-      <!-- 第二部分：发起人 + 报名用户头像（详情页不限制数量，有多少显示多少） -->
+      <!-- 第二部分：发起人 + 报名用户头像（最多 15 个，超出 +N） -->
       <view class="participants-section">
         <text class="section-title">匹克球搭子</text>
         <view class="participants-list">
+          <!-- 已报名用户头像 -->
           <view
             v-for="(item, idx) in displayedParticipants"
             :key="item.userId || idx"
@@ -77,22 +98,30 @@
             @tap="handleViewProfile(item.userId)"
           >
             <view class="participant-avatar-container">
-              <image
-                v-if="item.avatarUrl"
-                :src="getCloudImageUrl(item.avatarUrl)"
-                class="participant-avatar-large"
-                mode="aspectFill"
-              />
-              <view v-else class="participant-avatar-placeholder-large">
-                <text class="avatar-placeholder-icon">👤</text>
+              <!-- NOTE: 占位容器始终可见，图片通过 CSS fadeIn 自动淡入，避免 src 变化闪烁 -->
+              <view class="participant-avatar-wrap-large">
+                <image
+                  v-if="item.avatarUrl"
+                  :key="item.avatarUrl"
+                  :src="getCloudImageUrl(item.avatarUrl)"
+                  class="participant-avatar-inner"
+                  mode="aspectFill"
+                />
               </view>
-              <view v-if="item.isHost" class="host-badge">发起人</view>
             </view>
             <text class="participant-name-large">{{ item.nickName || '微信用户' }}</text>
           </view>
 
+          <!-- NOTE: "+" 占位圆：未满额且未结束时显示，不限人数 -->
+          <view v-if="showAddSlot" class="participant-item">
+            <view class="participant-add-slot-large">
+              <text class="participant-add-text-large">+</text>
+            </view>
+            <text class="participant-name-large"></text>
+          </view>
         </view>
       </view>
+
 
       <!-- 第三部分：底部固定报名区（免责声明 + 立即报名按钮） -->
       <view v-if="!isEnded && canJoin" class="join-section">
@@ -176,7 +205,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { onLoad, onShow, onHide, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import type { Activity, User } from '../../types'
 import { getActivityDetail, joinActivity } from '../../services/activity'
@@ -191,6 +220,17 @@ const loading = ref(true)
 const joining = ref(false)
 // NOTE: 报名前必须勾选免责声明，与发起活动页逻辑一致
 const disclaimerAccepted = ref(false)
+// NOTE: 发起人头像加载完成标记，用于触发淡入动画
+const hostAvatarLoaded = ref(false)
+// NOTE: 监听 URL 变化并重置加载标记，避免 cloud URL 替换缓存 URL 时图片重载期间闪烁
+watch(
+  () => activity.value?.hostAvatar,
+  (newUrl, oldUrl) => {
+    if (newUrl && newUrl !== oldUrl) {
+      hostAvatarLoaded.value = false
+    }
+  }
+)
 
 // NOTE: 跳转到独立免责声明页面
 function goToDisclaimer() {
@@ -206,7 +246,7 @@ const max = computed(() => activity.value?.maxParticipants ?? 0)
 const remaining = computed(() => Math.max(0, max.value - current.value))
 const participants = computed(() => activity.value?.participants || [])
 
-/** 详情页显示全部参与人员，不做数量限制 */
+/** 搜子栏显示全部参与人员，不限制数量 */
 const displayedParticipants = computed(() => {
   const act = activity.value
   if (!act) return []
@@ -228,6 +268,9 @@ const displayedParticipants = computed(() => {
   })))
   return list
 })
+
+// NOTE: 未满额且未结束时显示 "+" 占位圆
+const showAddSlot = computed(() => !isFull.value && !isEnded.value)
 
 const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 // 与广场活动卡一致：无 endTime 或 endTime 与 startTime 相同时，截止时间显示为开始时间+1小时
@@ -539,11 +582,15 @@ async function loadActivityDetail(forceRefresh = false) {
       const detailAny = detail as Record<string, unknown>
       // NOTE: 始终使用云函数返回的最新 URL。
       // 旧逻辑 keepHostAvatar 会保留旧 temp URL（可能已过期），导致头像失效。
+      const prevHostAvatar = prev?.hostAvatar
+      const newHostAvatar = detail.hostAvatar
+      // NOTE: 与 participants 头像同逻辑：
+      // 缓存中已有效 http URL 则保留（URL 字符串稳定，不触发 image 重载），
+      // 缓存无 http URL（首次/过期）才用云函数新 URL，确保始终有图可显示
+      const keepHostAvatar = prevHostAvatar && String(prevHostAvatar).startsWith('http')
       const merged = {
         ...detail,
-        // NOTE: 优先保留缓存的 hostAvatar URL，避免 URL 字符串变化触发图片重载闪烁
-        // 仅当缓存无值时才采用云函数返回的新 URL
-        hostAvatar: prev?.hostAvatar || detail.hostAvatar || ''
+        hostAvatar: keepHostAvatar ? prevHostAvatar : (newHostAvatar || prevHostAvatar || '')
       } as Record<string, unknown>
       merged.hostRegion = detailAny.hostRegion
       merged.hostSignature = detailAny.hostSignature
@@ -769,6 +816,13 @@ function handleNavigate() {
   // #endif
 }
 
+// 预览备注图片
+function previewRemarkImage(idx: number) {
+  const imgs: string[] = (activity.value as any)?.images || []
+  if (!imgs.length) return
+  uni.previewImage({ current: imgs[idx], urls: imgs })
+}
+
 // 点击立即报名：先弹出确认，确认后报名；报名成功后刷新详情即可看到发起人联系方式
 function handleJoinTap() {
   if (joining.value || isFull.value || !activity.value) return
@@ -947,6 +1001,61 @@ onShareTimeline(() => {
   }
 }
 
+// NOTE: 备注独立区块：脱离两栏约束，标题小灰字 + 内容全宽显示
+// NOTE: 底部 padding 与卡片左右 16px 保持一致，四边留白统一
+.detail-remark-section {
+  padding: 10px 0 $ios-spacing-lg;
+  border-top: 0.5px solid $ios-separator;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-label--remark {
+  font-size: 13px;
+  color: $ios-text-secondary;
+  line-height: 1;
+}
+
+.detail-remark-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remark-images {
+  // NOTE: 两列网格；gap 统一为 8px，左右间距与行间距保持一致
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;       // 与备注文字留一点间距
+
+  &--single {
+    grid-template-columns: 1fr;
+    max-width: 50%;
+    margin: 4px auto 4px;
+  }
+}
+
+// NOTE: WXSS 不支持 aspect-ratio，用 padding-top hack 实现 1:1 正方形
+.remark-img-wrap {
+  position: relative;
+  width: 100%;
+  padding-top: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: $ios-bg-secondary;
+}
+
+.remark-img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
 .detail-label {
   width: 84px;
   flex-shrink: 0;
@@ -968,6 +1077,35 @@ onShareTimeline(() => {
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-all;
+  }
+}
+
+// NOTE: 联系方式行：类型标签（手机/微信）+ 号码横排显示，与 detail-row 的 flex 布局配合
+.detail-contact-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detail-contact-type {
+  font-size: 12px;
+  color: $ios-text-secondary;
+  background: $ios-bg-tertiary;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+// 以下为 .detail-value 继续的修饰类（SCSS 中需要重新开一个块）
+.detail-value {
+
+  // NOTE: 备注区：文字 + 图片纵向排列
+  &.detail-remark-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
   }
 
   // NOTE: 地点文字有导航按钮时缩短，防止溢出
@@ -1013,22 +1151,29 @@ onShareTimeline(() => {
   font-weight: 500;
 }
 
-.detail-initiator-avatar {
+// NOTE: 发起人头像：包裹容器始终显示灰色占位，image 默认不可见，@load 后通过 --loaded 类淡入
+.detail-initiator-avatar-wrap {
+  position: relative;
   width: 36px;
   height: 36px;
   border-radius: 50%;
   flex-shrink: 0;
   background: $ios-bg-tertiary;
-  // NOTE: 轻阴影区分白色头像，与广场页保持一致
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  // NOTE: 平滑过渡，用户切换 URL 时不闪烁
+  overflow: hidden;
+  margin-right: $ios-spacing-xs;
+}
+
+.detail-initiator-avatar {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
   transition: opacity 0.2s ease;
 
-  &--placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
+  &--loaded {
+    opacity: 1;
   }
 }
 
@@ -1103,14 +1248,21 @@ onShareTimeline(() => {
   overflow: hidden;
 }
 
-.participant-avatar-large {
+// NOTE: 参与者头像包裹容器：始终显示灰色占位圆，image 用 CSS fadeIn 动画淡入
+.participant-avatar-wrap-large {
   width: 60px;
   height: 60px;
   border-radius: 50%;
   background: $ios-bg-tertiary;
+  overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  // NOTE: 平滑过渡，与发起人头像一致，避免 URL 变化时闪烁
-  transition: opacity 0.2s ease;
+}
+
+.participant-avatar-inner {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  animation: avatarFadeIn 0.3s ease;
 }
 
 .participant-avatar-placeholder-large {
@@ -1127,6 +1279,49 @@ onShareTimeline(() => {
 .avatar-placeholder-icon {
   font-size: 28px;
   opacity: 0.4;
+}
+
+
+// NOTE: 空心虚线圆：最简洁的「空位可加入」占位符
+.participant-add-slot-large {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1.5px dashed rgba(0, 0, 0, 0.22);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.participant-add-text-large {
+  position: relative;
+  z-index: 1;
+  font-size: 26px;
+  font-weight: 300;
+  color: rgba(0, 0, 0, 0.35);
+  line-height: 1;
+}
+
+// NOTE: 搭子栏 +N 溢出圆
+.participant-overflow-slot-large {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: $ios-bg-tertiary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.participant-overflow-text-large {
+  font-size: 14px;
+  font-weight: 600;
+  color: $ios-text-secondary;
+  line-height: 1;
 }
 
 // NOTE: 发起人半圆徽章，与个人页 profile-edit-badge 完全一致

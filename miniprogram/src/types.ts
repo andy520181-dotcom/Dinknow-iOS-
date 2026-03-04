@@ -13,6 +13,7 @@ export interface Activity {
   fee: number // 0 表示免费
   feeNote?: string
   contactInfo?: string // 联系方式：手机号或微信号，选填
+  contactType?: 'phone' | 'wechat' // 联系方式类型
   description?: string
   duprLevel?: string // DUPR要求（如"2.0-2.5"、"3.0-3.5"、"4.0+"）
   activityType?: string // 活动形式：单打、双打、混双、不限

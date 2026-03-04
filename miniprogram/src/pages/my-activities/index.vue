@@ -15,39 +15,13 @@
       >
         <ActivityCard
           :activity="activity"
-          variant="my-joined"
-        >
-          <!-- 我参加的 / 我发起的：右上角都不显示分享 -->
-          <template #topRight>
-            <view class="card-top-right-placeholder" />
-          </template>
-
-          <!-- 我参加的：卡片底部显示退订按钮 -->
-          <template v-if="type === 'joined'" #footer>
-            <button
-              class="leave-btn"
-              :class="{ 'leave-btn--disabled': isActivityEnded(activity) }"
-              :disabled="isActivityEnded(activity)"
-              @tap.stop="handleLeaveActivity(activity)"
-            >
-              退出
-            </button>
-          </template>
-          <!-- 我发起的：已过活动时间不可编辑、可删除；未过可编辑可删除 -->
-          <template v-else-if="type === 'created'" #footer>
-            <view class="footer-actions" @tap.stop>
-              <button
-                class="edit-btn"
-                :class="{ 'edit-btn--disabled': isActivityEnded(activity) }"
-                :disabled="isActivityEnded(activity)"
-                @tap.stop="handleEditActivity(activity)"
-              >
-                编辑
-              </button>
-              <button class="delete-btn" @tap.stop="handleDeleteActivity(activity)">删除</button>
-            </view>
-          </template>
-        </ActivityCard>
+          :variant="type === 'created' ? 'my-created' : 'my-joined'"
+          :isOwner="type === 'created'"
+          :showLeave="type === 'joined'"
+          @edit="handleEditActivity"
+          @delete="handleDeleteActivity"
+          @leave="handleLeaveActivity"
+        />
       </view>
     </view>
   </view>
@@ -58,7 +32,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { onLoad, onShow, onHide, onPullDownRefresh } from '@dcloudio/uni-app'
 import { getUserActivities, getActivityDetail, deleteActivity, leaveActivity } from '../../services/activity'
 import type { Activity } from '../../types'
-import { isActivityEnded } from '../../utils/activity'
+import { isActivityEnded, isActivityInProgress } from '../../utils/activity'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar, resolveActivityAvatarUrls } from '../../utils/avatarSync'
 import ActivityCard from '../../components/ActivityCard.vue'
 
@@ -288,6 +262,9 @@ function handleEditActivity(activity: Activity) {
     description: (activity as any).description,
     contactInfo: (activity as any).contactInfo
   })
+  // NOTE: 同步备注文字和图片到 storage，让发起活动页 syncRemarkFromStorage 回填
+  uni.setStorageSync('editing_activity_remark', (activity as any).description || '')
+  uni.setStorageSync('editing_activity_remark_images', (activity as any).images || [])
   uni.switchTab({ url: '/pages/create-activity/index' })
 }
 
@@ -322,8 +299,14 @@ async function handleDeleteActivity(activity: Activity) {
 
 async function handleLeaveActivity(activity: Activity) {
   if (!activity._id) return
+  // NOTE: 已结束：超过结束时间
   if (isActivityEnded(activity)) {
-    uni.showToast({ title: '活动已开始，无法退出', icon: 'none' })
+    uni.showToast({ title: '活动已结束，无法退出', icon: 'none' })
+    return
+  }
+  // NOTE: 进行中：已开始但未结束
+  if (isActivityInProgress(activity)) {
+    uni.showToast({ title: '活动正在进行中，无法退出', icon: 'none' })
     return
   }
   uni.showModal({

@@ -24,9 +24,11 @@ exports.main = async (event, context) => {
     maxParticipants = 8,
     fee = 0,
     contactInfo,
+    contactType,
     duprLevel,
     activityType = '不限',
-    description
+    description,
+    images
   } = event || {}
 
   console.log('[createActivity] 解析参数:', { title, startDate, startTime, address, latitude, longitude, maxParticipants, fee, duprLevel })
@@ -77,6 +79,8 @@ exports.main = async (event, context) => {
     duprLevel: duprLevel ? String(duprLevel).trim() : undefined,
     activityType: activityType != null ? String(activityType).trim() : '不限',
     description: description ? String(description).trim() : undefined,
+    contactType: contactType || 'phone',
+    images: Array.isArray(images) && images.length > 0 ? images : undefined,
     hostId: openid,
     hostName,
     hostAvatar,
@@ -94,7 +98,7 @@ exports.main = async (event, context) => {
     const errMsg = e?.message || e?.errMsg || String(e)
     const errCode = e?.errCode || e?.code
     let msg = '发布失败'
-    
+
     // 根据错误码和错误信息给出具体提示
     if (errCode === -502001 || errCode === -502005) {
       // -502001: 数据库请求失败
@@ -115,7 +119,7 @@ exports.main = async (event, context) => {
     } else if (errMsg) {
       msg = errMsg
     }
-    
+
     console.error('[createActivity] 返回错误:', msg, '原始错误:', e)
     return { success: false, message: msg, errCode, errMsg: errMsg || String(e) }
   }

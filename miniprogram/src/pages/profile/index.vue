@@ -22,10 +22,7 @@
             >
               <image v-if="loginAvatarUrl" class="login-row-avatar" :src="loginAvatarUrl" mode="aspectFill" />
               <view v-else class="login-row-avatar login-row-avatar--placeholder">
-                <image class="login-row-avatar-default" src="/static/icons/avatar-default.png" mode="aspectFill" />
-              </view>
-              <view class="login-row-avatar-badge">
-                <text class="login-row-avatar-badge-text">编辑</text>
+                <image class="login-row-avatar-default" src="/static/icons/avatar-default.png" mode="aspectFit" />
               </view>
             </button>
           </view>
@@ -55,12 +52,11 @@
         <text class="login-submit-text">登录</text>
       </view>
     </view>
-    <scroll-view v-else class="profile-scroll" scroll-y>
+    <view v-else class="profile-scroll">
       <view class="profile-body">
 
-        <!-- NOTE: 头像卡片横排：左侧头像，右侧昵称 + DUPR 水平 -->
-        <view class="ios-section profile-avatar-card">
-          <!-- NOTE: wrapper 相对定位，让编辑小圆点脱离 button overflow:hidden 范围，直接叠加在头像右下角 -->
+        <!-- ── 顶部居中头像区 ── -->
+        <view class="profile-hero">
           <view class="profile-avatar-wrap">
             <button
               class="profile-avatar-circle"
@@ -77,23 +73,29 @@
                 <text class="profile-avatar-icon">👤</text>
               </view>
             </button>
-            <!-- NOTE: 编辑头像按鈕，使用 edit-avatar.png -->
             <view class="profile-edit-dot">
               <image class="profile-edit-dot-icon" src="/static/icons/edit-avatar.png" mode="aspectFit" />
             </view>
           </view>
-          <!-- 右侧信息区：昵称 + DUPR 水平 -->
-          <view class="profile-info-right">
-            <text class="profile-username">{{ nickName || '微信用户' }}</text>
-            <!-- NOTE: 头部 DUPR 图标使用 pikeqiu.png -->
-            <view class="profile-dupr-row">
-              <image class="profile-dupr-icon" src="/static/icons/pikeqiu.png" mode="aspectFit" />
-              <text class="profile-dupr-label">{{ duprLevel || '暂未设置 DUPR 水平' }}</text>
-            </view>
+          <text class="profile-hero-name">{{ nickName || '微信用户' }}</text>
+          <view class="profile-hero-dupr">
+            <text class="profile-hero-dupr-text">{{ duprLevel || '暂未设置 DUPR 水平' }}</text>
           </view>
         </view>
 
-        <!-- 信息卡片 -->
+        <!-- ── 场次统计：双列并排卡片 ── -->
+        <view class="stat-grid">
+          <view class="stat-card" @tap="goToMyActivities('joined')">
+            <text class="stat-count">{{ myJoined.length }}</text>
+            <text class="stat-label">我参加的</text>
+          </view>
+          <view class="stat-card" @tap="goToMyActivities('created')">
+            <text class="stat-count">{{ myCreated.length }}</text>
+            <text class="stat-label">我发起的</text>
+          </view>
+        </view>
+
+        <!-- ── 基本资料分区（含 DUPR 水平、球风）── -->
         <view class="ios-section">
           <view class="ios-cell" @tap="openNicknameEdit">
             <image class="ios-cell__row-icon" src="/static/icons/nicheng.png" mode="aspectFit" />
@@ -113,7 +115,7 @@
             <text :class="region ? 'ios-cell__value' : 'ios-cell__value ios-cell__placeholder'">{{ region || '请选择' }}</text>
             <text class="ios-cell__chevron">›</text>
           </view>
-          <!-- DUPR 水平：使用原生 picker，与发起活动页保持一致 -->
+          <!-- DUPR 水平 -->
           <view class="ios-cell ios-cell--tap">
             <image class="ios-cell__row-icon" src="/static/icons/dupr.png" mode="aspectFit" />
             <text class="ios-cell__label">DUPR 水平</text>
@@ -139,32 +141,15 @@
           </view>
         </view>
 
-        <!-- 场次统计卡片：分行显示 -->
-        <view class="ios-section ios-activities-card">
-          <view class="ios-activity-tile" @tap="goToMyActivities('joined')">
-            <view class="ios-activity-tile-left">
-              <image class="ios-cell__row-icon" src="/static/icons/wocanjiade.png" mode="aspectFit" />
-              <text class="ios-activity-tile-title">我参加的</text>
-            </view>
-            <view class="ios-activity-count-row">
-              <text class="ios-activity-count">{{ myJoined.length }}</text>
-              <text class="ios-activity-unit"> 场</text>
-            </view>
-          </view>
-          <view class="ios-activity-tile" @tap="goToMyActivities('created')">
-            <view class="ios-activity-tile-left">
-              <image class="ios-cell__row-icon" src="/static/icons/wofaqide.png" mode="aspectFit" />
-              <text class="ios-activity-tile-title">我发起的</text>
-            </view>
-            <view class="ios-activity-count-row">
-              <text class="ios-activity-count">{{ myCreated.length }}</text>
-              <text class="ios-activity-unit"> 场</text>
-            </view>
-          </view>
+        <!-- ── 退出登录按钮 ── -->
+        <view class="logout-btn" @tap="handleLogout">
+          <text class="logout-btn-text">退出登录</text>
         </view>
+        <!-- 版本号：正式版自动读取微信后台版本号 -->
+        <text class="app-version">{{ appVersion }}</text>
 
       </view>
-    </scroll-view>
+    </view>
 
     <!-- 选项 Action Sheet：单块白色面板从屏幕底部弹出 -->
     <view v-if="showPickerModal" class="action-sheet-mask" @tap="closePickerModal">
@@ -191,6 +176,20 @@ import { login, getProfile, updateProfile, checkLogin } from '../../services/use
 import { getCloudImageUrl } from '../../services/cloud'
 import { getUserActivities } from '../../services/activity'
 import type { User, Activity } from '../../types'
+
+// NOTE: 自动读取微信后台版本号，正式版返回真实版本，开发/体验版返回空字符串
+const appVersion = (() => {
+  try {
+    // #ifdef MP-WEIXIN
+    const info = (wx as any).getAccountInfoSync()
+    const v = info?.miniProgram?.version
+    return v ? `Dinknow v${v}` : 'Dinknow'
+    // #endif
+  } catch {
+    return 'Dinknow'
+  }
+  return 'Dinknow'
+})()
 
 const genderOptions = ['保密', '男', '女']
 const duprOptions = ['初级 1.0-2.5', '中级 3.0-3.5', '高级 4.0-4.5', '专业级 5.0+']
@@ -514,6 +513,32 @@ function goToMyActivities(type: 'joined' | 'created') {
   })
 }
 
+// NOTE: 退出登录：清除本地缓存，小程序回到登录状态
+function handleLogout() {
+  uni.showModal({
+    title: '退出登录',
+    content: '确认退出登录？',
+    confirmText: '退出',
+    confirmColor: '#FF3B30',
+    success: (res) => {
+      if (res.confirm) {
+        uni.clearStorageSync()
+        isLoggedIn.value = false
+        nickName.value = ''
+        avatarUrl.value = ''
+        // NOTE: 必须同步重置 gender 和 genderSet，否则退出后再登录会显示上一次选择的性别
+        gender.value = 0
+        genderSet.value = false
+        duprLevel.value = ''
+        region.value = ''
+        signature.value = ''
+        myJoined.value = []
+        myCreated.value = []
+      }
+    }
+  })
+}
+
 onMounted(() => {
   // NOTE: 先检查登录状态，已登录则自动加载资料
   checkLoginStatus()
@@ -547,8 +572,12 @@ onShow(() => {
 <style lang="scss" scoped>
 .profile-page {
   min-height: 100vh;
-  // NOTE: 顶部使用广场页蓝色 $ios-blue (#007AFF) 渐变到底部白色
-  background: linear-gradient(180deg, #007AFF 0%, #4DA6FF 20%, #C2E0FF 45%, #EBF5FF 65%, #FFFFFF 100%);
+  // NOTE: 全屏渐变：顶部极浅品牌蓝（比之前更浅）→ 底部灰白，衬托卡片轻阴影
+  background: linear-gradient(
+    to bottom,
+    #EDF3FF 0%,   /* 极浅蓝白 */
+    #EFEFF4 100%  /* 底部灰白，接近 iOS 系统背景色，使卡片阴影更明显 */
+  );
   display: flex;
   flex-direction: column;
 }
@@ -561,37 +590,50 @@ onShow(() => {
   padding: 0 0 $ios-spacing-lg;
 }
 
-// ---- 卡片基础 ----
+// ---- 卡片基础（参考图：圆角白色卡片，左右带间距）----
 .ios-section {
   background: #ffffff;
-  // NOTE: 卡片全宽贴边，无左右边距和阴影
-  border-radius: 0;
-  margin: 0 0 $ios-spacing-lg;
+  border-radius: 14px;
+  margin: 0 16px $ios-spacing-md;
   overflow: hidden;
 }
 
-// ---- 头像卡片 ----
-// NOTE: 头像区域透明，露出蓝色渐变背景；横排布局：左头像 + 右侧信息
-.profile-avatar-card {
-  background: transparent !important;
-  box-shadow: none !important;
-  margin: 0 0 $ios-spacing-sm;
-  border-radius: 0 !important;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: $ios-spacing-lg $ios-spacing-lg;
-  gap: $ios-spacing-md;
-}
-
-// NOTE: 右侧信息竖排：昵称 + DUPR 水平
-.profile-info-right {
+// ---- 头像区：居中垂直排列（无背景卡片，直接显示在页面背景上）----
+.profile-hero {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  padding: 32px 16px 24px;
+  background: transparent;
+  margin-bottom: $ios-spacing-md;
 }
 
-// NOTE: 头像 wrapper，relative 定位用于承载右下角绝对定位的编辑圆点
+.profile-hero-name {
+  font-size: 19px;
+  font-weight: $ios-font-weight-semibold;
+  color: #111;
+  margin-top: 12px;
+}
+
+.profile-hero-dupr {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.profile-hero-dupr-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.profile-hero-dupr-text {
+  font-size: 13px;
+  color: $ios-text-tertiary;
+  font-weight: $ios-font-weight-regular;
+}
+
+// NOTE: wrapper 相对定位，承载编辑圆点
 .profile-avatar-wrap {
   position: relative;
   display: inline-flex;
@@ -943,6 +985,76 @@ onShow(() => {
 }
 
 // NOTE: 登录状态检查中的空白遮罩，背景色与页面一致，用户无感知
+// ── 双列统计卡 ──────────────────────────────────────────
+.stat-grid {
+  display: flex;
+  gap: 12px;
+  padding: 0 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0 16px;
+
+  &:active { opacity: 0.75; }
+}
+
+.stat-count {
+  font-size: 32px;
+  font-weight: $ios-font-weight-semibold;
+  color: $ios-blue;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: $ios-text-secondary;
+  margin-top: 6px;
+  font-weight: $ios-font-weight-regular;
+}
+
+// ── 分区标题（基本资料 / 运动档案）────────────────────────
+.profile-section-title {
+  font-size: 13px;
+  color: $ios-text-tertiary;
+  font-weight: $ios-font-weight-regular;
+  padding: 0 16px 8px;
+}
+
+// ── 退出登录按钮 ──────────────────────────────────────────
+.logout-btn {
+  margin: 20px 16px 40px;
+  background: #ffffff;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+
+  &:active { opacity: 0.7; }
+}
+
+.logout-btn-text {
+  font-size: 16px;
+  color: #333333;
+  font-weight: $ios-font-weight-medium;
+}
+
+.app-version {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.2);
+  padding-bottom: 32px;
+}
+
 .profile-loading {
   min-height: 100vh;
   background: $ios-bg-secondary;
@@ -954,7 +1066,8 @@ onShow(() => {
   background: $ios-bg-secondary;
   display: flex;
   flex-direction: column;
-  padding: calc(#{$ios-spacing-xl} + 30px) $ios-spacing-lg $ios-spacing-xl;
+  // NOTE: 左右 padding 设为 0，由 ios-section 的 margin: 0 16px 统一控制左右边距
+  padding: 0 0 $ios-spacing-xl;
   box-sizing: border-box;
   padding-top: calc(#{$ios-spacing-xl} + 30px + env(safe-area-inset-top));
 }
@@ -963,12 +1076,15 @@ onShow(() => {
   font-size: 22px;
   color: $ios-text-primary;
   margin-bottom: 6px;
+  // NOTE: 标题缩进与卡片左右边距对齐
+  padding: 0 16px;
 }
 
 .login-page-subtitle {
   font-size: 14px;
   color: $ios-text-secondary;
   margin-bottom: 100px;
+  padding: 0 16px;
 }
 
 // NOTE: 登录表单使用与主界面信息卡片相同的 ios-section，CSS 复用已定义的类名
@@ -1018,22 +1134,23 @@ onShow(() => {
   display: block;
 }
 
+// NOTE: 圆形占位：浅灰圆形背景 + 球拍图标居中
 .login-row-avatar--placeholder {
   width: 48px;
   height: 48px;
   border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-// NOTE: 默认头像图标撑满整个 48px 圆形区域，灰色状态
+// NOTE: 默认头像使用球拍水印图，灰色透明状态提示「待选择」
 .login-row-avatar-default {
-  width: 48px;
-  height: 48px;
-  opacity: 0.4;
-  filter: grayscale(100%);
+  width: 36px;
+  height: 36px;
+  opacity: 0.35;
 }
 
 .login-row-avatar-icon {
@@ -1076,14 +1193,14 @@ onShow(() => {
 }
 
 .login-submit-btn {
-  width: 100%;
+  // NOTE: 左右 margin 16px，与卡片边距保持一致
+  margin: $ios-spacing-xs 16px 0;
   height: 54px;
   background: $ios-blue;
   border-radius: $ios-radius-lg;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: $ios-spacing-xs;
   &:active { opacity: 0.85; }
 }
 

@@ -8,6 +8,7 @@
 export interface ActivityStartLike {
   startDate?: string | null
   startTime?: string | null
+  endTime?: string | null
 }
 
 /**
@@ -56,14 +57,50 @@ export function parseActivityStartTime(activity: ActivityStartLike): number | nu
 const END_BUFFER_MS = 60 * 1000
 
 /**
- * 活动是否已结束：仅当当前时间超过开始时间 1 分钟后才视为已结束（与广场/详情/个人页一致）
+ * 活动是否已结束：
+ * - 有 endTime 时：当前时间超过结束时间 1 分钟才视为已结束
+ * - 无 endTime 时：兜底使用开始时间 + 1 分钟
  */
 export function isActivityEnded(activity: ActivityStartLike): boolean {
   const start = parseActivityStartTime(activity)
   if (start == null) return false
   const now = Date.now()
   if (now < start) return false
+
+  // NOTE: 优先使用 endTime 判断，更准确
+  if (activity.endTime) {
+    const endTs = parseActivityEndTime(activity)
+    if (endTs != null) return (now - endTs) > END_BUFFER_MS
+  }
+
+  // 没有 endTime，fallback：超过开始时间 1 分钟即视为已结束
   return (now - start) > END_BUFFER_MS
+}
+
+/**
+ * 活动是否「进行中」：已过开始时间，但尚未超过结束时间
+ * - 有 endTime 时：start <= now <= end
+ * - 无 endTime 时：不存在「进行中」状态（超过开始即结束）
+ */
+export function isActivityInProgress(activity: ActivityStartLike): boolean {
+  if (!activity.endTime) return false
+  const start = parseActivityStartTime(activity)
+  if (start == null) return false
+  const now = Date.now()
+  if (now <= start) return false
+  const endTs = parseActivityEndTime(activity)
+  if (endTs == null) return false
+  return now <= endTs + END_BUFFER_MS
+}
+
+/**
+ * 解析活动结束时间戳（利用 startDate + endTime）
+ */
+export function parseActivityEndTime(activity: ActivityStartLike): number | null {
+  if (!activity.endTime || !activity.startDate) return null
+  // NOTE: 复用 start 解析逻辑：用 endTime 替换 startTime 解析即可
+  const startMock: ActivityStartLike = { startDate: activity.startDate, startTime: activity.endTime }
+  return parseActivityStartTime(startMock)
 }
 
 /** 解析后的本地日期，用于展示 */

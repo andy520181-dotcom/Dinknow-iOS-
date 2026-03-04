@@ -1,88 +1,221 @@
 <template>
-  <view class="activity-card" :class="{ 'activity-card--has-actions': variant === 'my-created' }">
-    <view class="card-top-right">
-      <slot name="topRight">
-        <button
-          class="share-btn"
-          :class="{ 'share-btn--disabled': isEnded || isFull }"
-          :disabled="isEnded || isFull"
-          open-type="share"
-          @tap="onShareTap"
+  <view class="activity-card" :class="{ 'activity-card--ended': isEnded }">
+
+    <!-- ── 第一行：发起人头像 + 活动信息 ── -->
+    <view class="card-header">
+      <!-- 发起人头像 + 昵称（纵向排列） -->
+      <view class="host-avatar-col">
+        <view class="host-avatar-wrap">
+          <image
+            v-if="hostAvatarUrl"
+            :src="hostAvatarUrl"
+            class="host-avatar-img"
+            mode="aspectFill"
+          />
+          <view v-else class="host-avatar-placeholder">
+            <text class="host-avatar-icon">👤</text>
+          </view>
+        </view>
+        <text class="host-nickname">{{ activity.hostName || '微信用户' }}</text>
+      </view>
+
+      <!-- 活动信息块（右） -->
+      <view class="card-info-block">
+        <!-- 标题（标题文字 + 右侧距离标签） -->
+        <view class="card-title-row">
+          <text class="card-title">{{ activity.title }}</text>
+          <!-- NOTE: 仅用户已授权位置且活动有坐标时显示距离 -->
+          <text v-if="props.distanceKm != null" class="card-distance-badge">📍 {{ props.distanceKm }}km</text>
+        </view>
+
+        <!-- 时间 + 地点行 -->
+        <view class="info-row info-row--nowrap">
+          <view class="info-chunk">
+            <image class="info-icon-img" src="/static/icons/shijian-2.png" mode="aspectFit" />
+            <text class="info-text">{{ dateTimeFull }}</text>
+          </view>
+          <text class="info-sep">·</text>
+          <view class="info-chunk info-chunk--venue">
+            <image class="info-icon-img" src="/static/icons/zhiyuandidian4.png" mode="aspectFit" />
+            <text class="info-text info-text--ellipsis">{{ activity.venueName || activity.address || '—' }}</text>
+          </view>
+        </view>
+
+        <!-- DUPR + 人数 + 费用行 -->
+        <view class="info-row">
+          <view class="info-chunk">
+            <image class="info-icon-img" src="/static/icons/pikeqiu-2.png" mode="aspectFit" />
+            <text class="info-text">{{ duprLevel || '—' }}</text>
+          </view>
+          <text class="info-sep">·</text>
+          <view class="info-chunk">
+            <image class="info-icon-img" src="/static/icons/renshu-2.png" mode="aspectFit" />
+            <text class="info-text">{{ activity.maxParticipants }}人</text>
+          </view>
+          <text class="info-sep">·</text>
+          <view class="info-chunk">
+            <image class="info-icon-img" src="/static/icons/feiyongdanju.png" mode="aspectFit" />
+            <text class="info-text">{{ feeText }}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- NOTE: 右上角：发起人显示三点菜单（编辑/删除/分享），非发起人显示分享按钮 -->
+      <view class="card-top-right">
+        <slot name="topRight">
+          <!-- 发起人：三点菜单 -->
+          <view v-if="props.isOwner" class="share-btn" @tap.stop="showOwnerMenu">
+            <text class="share-btn-dots">⋯</text>
+          </view>
+          <!-- 参加者：退出菜单 -->
+          <view v-else-if="props.showLeave" class="share-btn" @tap.stop="showJoinedMenu">
+            <text class="share-btn-dots">⋯</text>
+          </view>
+          <!-- 其他：直接分享 -->
+          <button
+            v-else
+            class="share-btn"
+            :class="{ 'share-btn--disabled': isEnded || isFull }"
+            :disabled="isEnded || isFull"
+            open-type="share"
+            @tap="onShareTap"
+          >
+            <text class="share-btn-dots">⋯</text>
+          </button>
+        </slot>
+      </view>
+    </view>
+
+    <!-- 分割线 -->
+    <view class="card-divider" />
+
+    <!-- ── 报名人员头像网格 + 报名按钮 ── -->
+    <view class="card-footer">
+      <!-- 报名人员头像网格：5列，最多3行（15个），超出+N -->
+      <view class="participants-grid">
+        <view
+          v-for="(p, idx) in displayedParticipants"
+          :key="p.userId || idx"
+          class="participant-item"
         >
-          <text class="share-btn-dots">⋯</text>
+          <view class="participant-avatar-wrap">
+            <image
+              v-if="p.avatarUrl && String(p.avatarUrl).trim()"
+              :src="String(p.avatarUrl)"
+              class="participant-avatar-img"
+              mode="aspectFill"
+            />
+            <view v-else class="participant-avatar-placeholder">
+              <text class="participant-avatar-icon">👤</text>
+            </view>
+          </view>
+          <text class="participant-nickname">{{ p.nickName || '球友' }}</text>
+        </view>
+
+        <!-- "+" 占位圆：Dinknow 品牌文字叠底，+ 号叠加前景 -->
+        <view v-if="showAddSlot && !overflowCount" class="participant-item">
+          <view class="participant-add-slot">
+            <text class="participant-add-text">+</text>
+          </view>
+          <text class="participant-nickname"></text>
+        </view>
+
+        <!-- 超出15个时显示 +N -->
+        <view v-if="overflowCount > 0" class="participant-item">
+          <view class="participant-overflow-slot">
+            <text class="participant-overflow-text">+{{ overflowCount }}</text>
+          </view>
+          <text class="participant-nickname"></text>
+        </view>
+      </view>
+
+      <!-- 报名按钮：右对齐；发起人自己不显示 -->
+      <slot name="footer">
+        <button
+          v-if="!props.isOwner"
+          class="join-btn"
+          :class="{ 'join-btn--disabled': isEnded || isFull }"
+          :disabled="isEnded || isFull"
+          @tap="handleJoinClick"
+        >
+          <text class="join-text-in-btn">{{ joinButtonText }}</text>
         </button>
       </slot>
     </view>
 
-    <!-- 上半部分：发起人头像 + 报名人员头像，最多 15 个（5列×3行），超出用 +N 省略 -->
-    <view v-if="displayedParticipants.length > 0 || overflowCount > 0" class="card-avatars-section">
-      <view
-        v-for="(participant, idx) in displayedParticipants"
-        :key="participant.userId || idx"
-        class="card-avatar-item"
-        :class="{ 'card-avatar-item--host': participant.isHost }"
-      >
-        <view class="card-avatar-wrap">
-          <image
-            v-if="participant.avatarUrl && String(participant.avatarUrl).trim()"
-            :src="String(participant.avatarUrl)"
-            class="card-avatar-img"
-            mode="aspectFill"
-          />
-          <view v-else class="card-avatar-placeholder">
-            <text class="card-avatar-icon">👤</text>
-          </view>
-        </view>
-        <text class="card-avatar-name">{{ participant.nickName || '微信用户' }}</text>
-      </view>
-      <view v-if="overflowCount > 0" class="card-avatar-item card-avatar-item--overflow">
-        <view class="card-avatar-wrap card-avatar-wrap--overflow">
-          <text class="card-avatar-overflow-text">+{{ overflowCount }}</text>
-        </view>
-        <text class="card-avatar-name card-avatar-name--overflow">更多</text>
-      </view>
-    </view>
-
-    <!-- 头像与文案之间的分割线 -->
-    <view v-if="displayedParticipants.length > 0 || overflowCount > 0" class="card-divider" />
-
-    <!-- 下半部分：活动信息内容 -->
-    <ActivityCardContent :activity="activity" ref="cardContentRef">
-      <template #footerRight>
-        <slot name="footer">
-          <!-- 默认：立即报名按钮（广场页） -->
-          <button
-            class="join-btn"
-            :class="{ 'join-btn--disabled': isEnded || isFull }"
-            :disabled="isEnded || isFull"
-            @tap="handleJoinClick"
-          >
-            <text class="join-text-in-btn">{{ getButtonText }}</text>
-          </button>
-        </slot>
-      </template>
-    </ActivityCardContent>
   </view>
 </template>
 
 <script setup lang="ts">
 import type { Activity } from '../types'
-import { isActivityEnded } from '../utils/activity'
+import { isActivityEnded, isActivityInProgress, parseActivityDate } from '../utils/activity'
 import { computed, ref, watch, onMounted } from 'vue'
 import { checkLogin } from '../services/user'
 import { getCloudImageUrl, getTempFileURLs } from '../services/cloud'
-import ActivityCardContent from './ActivityCardContent.vue'
 
 const props = withDefaults(
   defineProps<{
     activity: Activity
-    /** 卡片变体：广场 | 我参加的 | 我发起的（影响标题右侧留白等） */
     variant?: 'square' | 'my-joined' | 'my-created'
+    distanceKm?: number | null
+    /** 是否为当前用户发起的活动 */
+    isOwner?: boolean
+    /** 是否为当前用户参加的活动（显示退出菜单） */
+    showLeave?: boolean
   }>(),
-  { variant: 'square' }
+  { variant: 'square', distanceKm: null, isOwner: false, showLeave: false }
 )
 
-// 组件挂载时输出调试信息
+const emit = defineEmits<{
+  join: []
+  detail: []
+  shareClick: [activity: Activity]
+  edit: [activity: Activity]
+  delete: [activity: Activity]
+  leave: [activity: Activity]
+}>()
+
+/** 参加者三点菜单：退出活动 */
+function showJoinedMenu() {
+  // NOTE: 已结束：超过结束时间（或无 endTime 时超过开始时间1分钟）
+  if (isEnded.value) {
+    uni.showToast({ title: '活动已结束，无法退出', icon: 'none' })
+    return
+  }
+  // NOTE: 进行中：已过开始时间但未超过结束时间
+  if (isActivityInProgress(props.activity)) {
+    uni.showToast({ title: '活动正在进行中，无法退出', icon: 'none' })
+    return
+  }
+  uni.showActionSheet({
+    itemList: ['退出活动'],
+    success: (res) => {
+      if (res.tapIndex === 0) emit('leave', props.activity)
+    }
+  })
+}
+
+/** 发起人三点菜单：编辑 / 删除 / 分享 */
+function showOwnerMenu() {
+  const ended = isEnded.value
+  const items = ended
+    ? ['删除活动']
+    : ['编辑活动', '删除活动']
+
+  uni.showActionSheet({
+    itemList: items,
+    success: (res) => {
+      if (ended) {
+        if (res.tapIndex === 0) emit('delete', props.activity)
+      } else {
+        if (res.tapIndex === 0) emit('edit', props.activity)
+        else if (res.tapIndex === 1) emit('delete', props.activity)
+      }
+    }
+  })
+}
+
+// ── 调试日志 ──────────────────────────────────────────
 onMounted(() => {
   if (props.activity?._id) {
     try {
@@ -90,9 +223,7 @@ onMounted(() => {
         hostId: props.activity.hostId,
         hostAvatar: props.activity.hostAvatar ? '有' : '无',
         participantsCount: props.activity.participants?.length || 0,
-        participants: props.activity.participants || [],
-        currentCount: props.activity.currentCount,
-        computedParticipantsCount: participants.value?.length || 0
+        currentCount: props.activity.currentCount
       })
     } catch (e) {
       console.error('[ActivityCard] 调试日志错误:', e)
@@ -100,53 +231,74 @@ onMounted(() => {
   }
 })
 
-// 监听活动数据变化，用于调试
-watch(() => props.activity, (newActivity) => {
-  if (newActivity?._id) {
-    try {
-      console.log(`[ActivityCard] 活动 ${newActivity._id} 数据更新:`, {
-        hostId: newActivity.hostId,
-        hostAvatar: newActivity.hostAvatar ? '有' : '无',
-        participantsCount: newActivity.participants?.length || 0,
-        participants: newActivity.participants || [],
-        currentCount: newActivity.currentCount,
-        computedParticipantsCount: participants.value?.length || 0
-      })
-    } catch (e) {
-      console.error('[ActivityCard] 调试日志错误:', e)
-    }
-  }
-}, { immediate: false, deep: true })
+// ── 时间/日期计算 ─────────────────────────────────────
+const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
-const emit = defineEmits<{
-  join: []
-  detail: []
-  shareClick: [activity: Activity]
-}>()
-
-const cardContentRef = ref<InstanceType<typeof ActivityCardContent> | null>(null)
-
-function onShareTap() {
-  emit('shareClick', props.activity)
+function addOneHour(timeStr: string): string {
+  const part = (timeStr || '00:00').trim().slice(0, 5)
+  const [h, m] = part.split(':').map(Number)
+  const mins = (h * 60 + (m || 0) + 60) % (24 * 60)
+  const nh = Math.floor(mins / 60)
+  const nm = mins % 60
+  return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`
 }
 
-// 与 ActivityCardContent 一致：使用共享 isActivityEnded（支持 ISO 日期、1 分钟缓冲）
-const isEnded = computed(() => isActivityEnded(props.activity))
-
-const isFull = computed(() => {
-  return cardContentRef.value?.isFull ?? false
+const dateTimeFull = computed(() => {
+  const parsed = parseActivityDate(props.activity)
+  const startTime = props.activity.startTime || '00:00'
+  const endTime = props.activity.endTime
+  const startPart = startTime.length <= 5 ? startTime : startTime.slice(0, 5)
+  const endPart =
+    endTime && String(endTime).trim() && String(endTime).trim() !== startPart
+      ? String(endTime).trim().length <= 5
+        ? String(endTime).trim()
+        : String(endTime).trim().slice(0, 5)
+      : addOneHour(startPart)
+  const timeRange = `${startPart}-${endPart}`
+  if (!parsed) return timeRange
+  const actDate = new Date(parsed.y, parsed.m - 1, parsed.day)
+  const weekday = weekdays[actDate.getDay()] ?? ''
+  return `${parsed.m}月${parsed.day}日 ${weekday} ${timeRange}`
 })
 
-const getButtonText = computed(() => {
+// ── 费用文字 ─────────────────────────────────────────
+const feeText = computed(() => {
+  const fee = props.activity.fee
+  if (fee === undefined || fee === null) return '—'
+  return fee === 0 ? '免费' : `${fee}元/人`
+})
+
+// ── DUPR 等级 ────────────────────────────────────────
+const duprLevel = computed(() => {
+  const level = (props.activity as any).duprLevel
+  return level || null
+})
+
+// ── 活动状态 ─────────────────────────────────────────
+const isEnded = computed(() => isActivityEnded(props.activity))
+
+// NOTE: 根据活动类型计算可报名名额（不含发起人）
+const availableSlots = computed(() => {
+  const actType = props.activity.activityType || '不限'
+  if (actType === '单打') return 1
+  if (actType === '双打' || actType === '混双') return 3
+  return props.activity.maxParticipants - 1
+})
+
+const registeredCount = computed(() => props.activity.currentCount ?? 0)
+
+const isFull = computed(() => registeredCount.value >= availableSlots.value)
+
+const joinButtonText = computed(() => {
   if (isEnded.value) return '已结束'
   if (isFull.value) return '报名已满'
   return '立即报名'
 })
 
-// 头像 URL 映射（用于存储临时 URL）
+// ── 头像 URL 管理 ─────────────────────────────────────
+/** cloud:// → 临时 URL 缓存映射，避免刷新时闪烁 */
 const avatarUrlMap = ref<Record<string, string>>({})
 
-// 获取并缓存头像的临时 URL；已有缓存或已是 https 的不再覆盖，避免刷新时换链导致闪烁
 async function loadAvatarUrls() {
   const isCloudId = (id: string) => typeof id === 'string' && id.startsWith('cloud://')
   const fileIDs: string[] = []
@@ -176,68 +328,51 @@ async function loadAvatarUrls() {
   }
 }
 
-// 解析展示用头像 URL：已是 http(s) 直接返回，cloud:// 用 map 或 getCloudImageUrl，保证我参加的/我发起的等页能显示
 function getDisplayAvatarUrl(url: string | null | undefined): string {
   if (!url || typeof url !== 'string') return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url
   return avatarUrlMap.value[url] || getCloudImageUrl(url) || url
 }
 
-// 已报名用户列表（包括创建者）
-const participants = computed(() => {
-  const list: Array<{ userId: string; avatarUrl?: string; nickName?: string; isHost?: boolean }> = []
+watch(
+  () => props.activity,
+  async (newActivity) => {
+    if (newActivity?._id) await loadAvatarUrls()
+  },
+  { immediate: true }
+)
 
-  try {
-    if (props.activity?.hostId) {
-      const rawHost = props.activity?.hostAvatar
-      const avatarUrl = rawHost ? getDisplayAvatarUrl(rawHost) : ''
-      list.push({
-        userId: props.activity.hostId,
-        avatarUrl: avatarUrl || undefined,
-        nickName: props.activity.hostName || '微信用户',
-        isHost: true
-      })
-    }
+// ── 发起人头像 URL ────────────────────────────────────
+const hostAvatarUrl = computed(() => getDisplayAvatarUrl(props.activity?.hostAvatar))
 
-    const joined = (props.activity?.participants || []).map((p: { userId?: string; avatarUrl?: string; nickName?: string }) => {
-      const raw = p?.avatarUrl
-      const avatarUrl = raw ? getDisplayAvatarUrl(raw) : ''
-      return {
-        ...p,
-        avatarUrl: avatarUrl || undefined
-      }
-    })
-    list.push(...joined)
-  } catch (e) {
-    console.error('[ActivityCard] participants computed 错误:', e)
-  }
+// ── 报名用户头像列表（不含发起人） ───────────────────────
+// NOTE: 5列×3行最多展示15个，超出显示+N占位
+const MAX_PARTICIPANT_DISPLAY = 15
 
+const participantList = computed(() => {
+  const list = (props.activity?.participants || []).map((p: { userId?: string; avatarUrl?: string; nickName?: string }) => ({
+    userId: p?.userId || '',
+    avatarUrl: p?.avatarUrl ? getDisplayAvatarUrl(p.avatarUrl) : '',
+    nickName: p?.nickName || ''
+  }))
   return list
 })
 
-/** 活动卡最多展示的头像数量，超出用 +N 省略 */
-const MAX_AVATAR_DISPLAY = 15
+const displayedParticipants = computed(() => participantList.value.slice(0, MAX_PARTICIPANT_DISPLAY))
 
-/** 用于展示的头像列表（最多 15 个，5列×3行） */
-const displayedParticipants = computed(() => {
-  const list = participants.value
-  return list.slice(0, MAX_AVATAR_DISPLAY)
-})
-
-/** 超出 15 个后的多出人数（发起人 + 已报名总数 - 15） */
+/** 超出最大显示数量的剩余数，展示 +N */
 const overflowCount = computed(() => {
-  const total = props.activity
-    ? 1 + (props.activity.currentCount ?? 0)
-    : 0
-  return Math.max(0, total - MAX_AVATAR_DISPLAY)
+  const total = participantList.value.length
+  return total > MAX_PARTICIPANT_DISPLAY ? total - MAX_PARTICIPANT_DISPLAY : 0
 })
 
-// 监听活动数据变化，加载头像临时 URL
-watch(() => props.activity, async (newActivity) => {
-  if (newActivity?._id) {
-    await loadAvatarUrls()
-  }
-}, { immediate: true })
+// NOTE: 未满额且未超出15个时显示"+"占位
+const showAddSlot = computed(() => !isFull.value && !isEnded.value)
+
+// ── 操作 ──────────────────────────────────────────────
+function onShareTap() {
+  emit('shareClick', props.activity)
+}
 
 async function handleJoinClick() {
   if (!props.activity._id || isEnded.value) return
@@ -264,6 +399,7 @@ async function handleJoinClick() {
 </script>
 
 <style lang="scss" scoped>
+// ── 卡片容器 ──────────────────────────────────────────
 .activity-card {
   position: relative;
   display: block;
@@ -273,13 +409,205 @@ async function handleJoinClick() {
   margin-bottom: $ios-spacing-md;
   box-shadow: $ios-shadow-md;
   transition: all 0.2s ease;
-  
+
   &:active {
     transform: scale(0.99);
     box-shadow: $ios-shadow-sm;
   }
+
+  // NOTE: 已结束活动背景保持白色，不做特殊处理
+  &--ended {}
 }
 
+// ── 第一行：发起人头像 + 信息块 ──────────────────────────
+.card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+// 发起人头像 + 昵称纵向容器
+.host-avatar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+// 发起人头像
+.host-avatar-wrap {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  // NOTE: hidden 使底部「发起人」条随头像圆形裁切，与详情页保持一致
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+// 发起人昵称
+.host-nickname {
+  font-size: 10px;
+  color: $ios-text-secondary;
+  text-align: center;
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.host-avatar-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: block;
+}
+
+.host-avatar-placeholder {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: $ios-bg-tertiary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.host-avatar-icon {
+  font-size: 28px;
+}
+
+// Host 徽标 — 低调展示，不突出
+.host-badge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.host-badge-text {
+  font-size: 9px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+// 活动信息块（标题 + 两行信息）
+.card-info-block {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  // NOTE: 为右上角分享按钮留出空间
+  padding-right: 28px;
+}
+
+// 标题行：@ 图标 + 标题文字
+.card-title-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+// NOTE: 距离小标签，灰色小字，flex-shrink:0 防止被标题压缩
+.card-distance-badge {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 12px;
+  color: $ios-text-tertiary;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.card-title-at {
+  font-size: 15px;
+  font-weight: $ios-font-weight-semibold;
+  color: $ios-blue;
+  line-height: 1.4;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: $ios-font-weight-semibold;
+  color: #1a1a1a;
+  line-height: 1.4;
+  letter-spacing: -0.2px;
+  // NOTE: 标题超长时尾部省略号显示，与地址栏保持一致
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+
+  // NOTE: 时间+地址行强制单行，超长省略
+  &--nowrap {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+}
+
+.info-chunk {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  flex-shrink: 0;
+
+  // NOTE: 地址 chunk 允许收缩，占满剩余空间
+  &--venue {
+    flex: 1;
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+  }
+}
+
+.info-icon-img {
+  width: 12px;
+  height: 12px;
+  margin-right: 3px;
+  flex-shrink: 0;
+}
+
+.info-sep {
+  font-size: 11px;
+  color: $ios-text-tertiary;
+  flex-shrink: 0;
+  margin: 0 1px;
+}
+
+.info-text {
+  font-size: 12px;
+  color: $ios-text-secondary;
+  line-height: 1.4;
+  min-width: 0;
+
+  &--ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// 分享按钮（绝对定位右上角）
 .card-top-right {
   position: absolute;
   top: $ios-spacing-md;
@@ -301,7 +629,6 @@ async function handleJoinClick() {
   &::after { border: none; }
   &:active { opacity: 0.6; }
 
-  // NOTE: 已结束活动的分享按钮置灰不可用
   &--disabled {
     opacity: 0.35;
     pointer-events: none;
@@ -314,56 +641,92 @@ async function handleJoinClick() {
   line-height: 1;
 }
 
-:deep(.activity-title) {
-  padding-right: 32px;
-}
-
-.activity-card--has-actions :deep(.activity-title) {
-  padding-right: 100px;
-}
-
-/* 上半部分：发起人 + 报名人员头像 */
-// NOTE: 固定 5 列网格，用 rpx 保证不同屏幕等比缩放
-.card-avatars-section {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  justify-items: center;
-  gap: 24rpx;
-}
-
-/* 头像与文案之间的分割线 */
+// ── 分割线 ────────────────────────────────────────────
 .card-divider {
   height: 0.5px;
-  margin: $ios-spacing-md 0;
-  background: rgba(0, 0, 0, 0.04);
+  margin: 10px 0 8px;
+  background: rgba(0, 0, 0, 0.06);
 }
 
-.card-avatar-item {
+// ── 报名区域：头像网格(左) + 报名按钮(右) ──────────────────────────
+// NOTE: 横向布局，头像网格 flex:1 不遮挡头像，按钮固定右侧不增加卡片高度
+.card-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+// 报名人员头像网格：5列自动换行，最多3行（15个）
+.participants-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  // NOTE: flex:1 占满左侧剩余空间，按钮在右侧不遮挡头像
+  flex: 1;
+  min-width: 0;
+}
+
+// +N 溢出占位圆
+.participant-overflow-slot {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: $ios-bg-tertiary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.participant-overflow-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: $ios-text-secondary;
+  line-height: 1;
+}
+
+// 单个报名用户：头像 + 昵称纵向容器
+.participant-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 4px;
   flex-shrink: 0;
 }
 
-.card-avatar-wrap {
-  position: relative;
-  width: 52px;
-  height: 52px;
+// 报名用户昵称
+.participant-nickname {
+  font-size: 10px;
+  color: $ios-text-secondary;
+  text-align: center;
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+// 单个报名用户头像
+// NOTE: 与发起人头像保持一致：56px / overflow:hidden / 纯 box-shadow 无 border
+.participant-avatar-wrap {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  overflow: visible;
   flex-shrink: 0;
-  /* 避免白色头像与白底融合：轻阴影保证圆形轮廓清晰 */
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.card-avatar-img {
-  width: 100%;
-  height: 100%;
+.participant-avatar-img {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   display: block;
 }
 
-.card-avatar-placeholder {
+.participant-avatar-placeholder {
   width: 100%;
   height: 100%;
   background: $ios-bg-tertiary;
@@ -373,42 +736,35 @@ async function handleJoinClick() {
   justify-content: center;
 }
 
-.card-avatar-icon {
-  font-size: 24px;
-  color: $ios-text-tertiary;
+.participant-avatar-icon {
+  font-size: 18px;
 }
 
-.card-avatar-name {
-  margin-top: 4px;
-  font-size: 12px;
-  color: $ios-text-secondary;
-  text-align: center;
-  max-width: 64px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 超出 15 个头像时的省略展示（+N） */
-.card-avatar-item--overflow {
-  cursor: default;
-}
-.card-avatar-wrap--overflow {
-  background: $ios-bg-tertiary;
+// NOTE: 空心虚线圆：语义最清晰的「空位可加入」占位符
+.participant-add-slot {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1.5px dashed rgba(0, 0, 0, 0.22);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.card-avatar-overflow-text {
-  font-size: 13px;
-  font-weight: 600;
-  color: $ios-text-secondary;
-}
-.card-avatar-name--overflow {
-  color: $ios-text-tertiary;
+
+// + 号叠在logo上方
+.participant-add-text {
+  position: relative;
+  z-index: 1;
+  font-size: 22px;
+  font-weight: 300;
+  color: rgba(0, 0, 0, 0.35);
+  line-height: 1;
 }
 
-// NOTE: 报名按钮内联在第二行右侧，改为紧凑小胶囊形式
+// ── 立即报名按钮 ──────────────────────────────────────
 .join-btn {
   display: inline-flex;
   align-items: center;

@@ -20,9 +20,11 @@ exports.main = async (event, context) => {
     maxParticipants,
     fee,
     contactInfo,
+    contactType,
     duprLevel,
     activityType,
-    description
+    description,
+    images
   } = event || {}
 
   if (!activityId) return { success: false, message: '缺少活动ID' }
@@ -58,6 +60,8 @@ exports.main = async (event, context) => {
     if (duprLevel != null) updateData.duprLevel = String(duprLevel).trim() || undefined
     if (activityType != null) updateData.activityType = String(activityType).trim() || '不限'
     if (description != null) updateData.description = String(description).trim() || undefined
+    if (contactType != null) updateData.contactType = contactType
+    if (images != null) updateData.images = Array.isArray(images) && images.length > 0 ? images : undefined
 
     // 更新活动
     await db.collection('activities').doc(activityId).update({ data: updateData })

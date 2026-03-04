@@ -3,7 +3,9 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "广场",
+        "navigationBarTitleText": "Dinknow",
+        "navigationBarBackgroundColor": "#EDF3FF",
+        "navigationBarTextStyle": "black",
         "enablePullDownRefresh": true
       }
     },
@@ -11,13 +13,17 @@
       "path": "pages/create-activity/index",
       "style": {
         "navigationBarTitleText": "发起活动",
+        "navigationBarBackgroundColor": "#EDF3FF",
+        "navigationBarTextStyle": "black",
         "disableScroll": true
       }
     },
     {
       "path": "pages/profile/index",
       "style": {
-        "navigationBarTitleText": "个人中心"
+        "navigationBarTitleText": "个人中心",
+        "navigationBarBackgroundColor": "#EDF3FF",
+        "navigationBarTextStyle": "black"
       }
     },
     {
@@ -74,8 +80,8 @@
   },
   "__usePrivacyCheck__": true,
   "tabBar": {
-    "color": "#8E8E93",
-    "selectedColor": "#007AFF",
+    "color": "#333333",
+    "selectedColor": "#333333",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [

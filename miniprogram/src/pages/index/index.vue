@@ -1,46 +1,116 @@
 <template>
   <view class="index-page">
-    <!-- 顶部区域：Banner 作背景，定位/搜索框/筛选叠在上方（参考图1） -->
-    <view class="header-with-banner">
-      <view class="banner-ad">
-        <image class="banner-ad-img" src="/static/images/banner.png" mode="aspectFill" />
-      </view>
+    <!-- 顶部区域：两段式胶囊（搜索 | 筛选）-->
+    <view class="header-area">
       <view class="header-content">
-        <!-- 顶部栏：城市选择 + 搜索框 -->
-        <view class="top-bar">
-          <view class="city-selector" @tap="handleCitySelect">
-            <text class="city-name">{{ currentCity || '定位中' }}</text>
-            <text class="dropdown-icon">▼</text>
+        <view class="search-capsule">
+          <!-- 左段：搜索输入 -->
+          <view class="capsule-search">
+            <image class="capsule-search-icon" src="/static/icons/search.png" mode="aspectFit" />
+            <input
+              class="capsule-input"
+              v-model="searchKeyword"
+              placeholder="搜索匹克球活动"
+              placeholder-class="capsule-input-placeholder"
+              @input="handleSearchInput"
+              @confirm="handleSearchConfirm"
+              :focus="searchFocused"
+            />
           </view>
-          <view class="search-box-wrapper">
-            <view class="search-box">
-              <image class="search-icon" src="/static/icons/search.png" mode="aspectFit" />
-              <input
-                class="search-input"
-                v-model="searchKeyword"
-                placeholder="搜索活动"
-                @input="handleSearchInput"
-                @confirm="handleSearchConfirm"
-                :focus="searchFocused"
-              />
-            </view>
-          </view>
-        </view>
-        <!-- DUPR筛选标签 -->
-        <view class="filter-container">
-          <view class="filter-tags">
-            <view 
-              v-for="(filter, idx) in filters" 
-              :key="idx"
-              :class="['filter-tag', { 'active': selectedFilter === filter.value }]"
-              @tap="handleFilterChange(filter.value)"
-            >
-              <text>{{ filter.label }}</text>
-            </view>
+          <!-- 右段：筛选 -->
+          <view
+            class="capsule-filter"
+            :class="{ 'capsule-filter--active': hasActiveFilter }"
+            @tap="toggleFilterPanel"
+          >
+            <image class="capsule-filter-icon" src="/static/icons/shaixuan.png" mode="aspectFit" />
           </view>
         </view>
       </view>
     </view>
+
+
+    <!-- 筛选面板：遮罩包含 bottom-sheet，v-if 控制整体显隐 -->
+    <view
+      v-if="showFilterPanel"
+      class="filter-overlay"
+      @tap="closeFilterPanel"
+    >
+      <!-- NOTE: 阻止冒泡，防止点击面板区域关闭遮罩 -->
+      <view class="filter-sheet" @tap.stop>
+        <!-- 顶部把手 -->
+        <view class="filter-sheet-handle" />
+
+        <!-- 城市切换：显示当前城市，点击跳转选择页 -->
+        <view class="filter-section filter-section--city">
+          <text class="filter-section-title">当前城市</text>
+          <view class="filter-city-row" @tap="handleCitySelectFromFilter">
+            <text class="filter-city-icon">📍</text>
+            <text class="filter-city-name">{{ currentCity || '定位中...' }}</text>
+            <text class="filter-city-arrow">❯</text>
+          </view>
+        </view>
+
+        <!-- 距离范围 -->
+        <view class="filter-section">
+          <text class="filter-section-title">距离范围</text>
+          <view class="filter-chips">
+            <view
+              v-for="d in distanceOptions"
+              :key="d.value"
+              class="filter-chip"
+              :class="{ 'filter-chip--active': pendingDistance === d.value }"
+              @tap="pendingDistance = pendingDistance === d.value ? '' : d.value"
+            >
+              <text class="filter-chip-text">{{ d.label }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- DUPR 水平 -->
+        <view class="filter-section">
+          <text class="filter-section-title">DUPR 水平</text>
+          <view class="filter-chips">
+            <view
+              v-for="f in filters"
+              :key="f.value"
+              class="filter-chip"
+              :class="{ 'filter-chip--active': pendingDupr === f.value }"
+              @tap="pendingDupr = pendingDupr === f.value ? '' : f.value"
+            >
+              <text class="filter-chip-text">{{ f.label }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 选择时段 -->
+        <view class="filter-section">
+          <text class="filter-section-title">选择时段</text>
+          <view class="filter-chips">
+            <view
+              v-for="t in timeSlotOptions"
+              :key="t.value"
+              class="filter-chip"
+              :class="{ 'filter-chip--active': pendingTimeSlots.includes(t.value) }"
+              @tap="toggleTimeSlot(t.value)"
+            >
+              <text class="filter-chip-text">{{ t.label }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 底部按钮：重置 + 确定 -->
+        <view class="filter-sheet-footer">
+          <view class="filter-reset-btn" @tap="resetFilters">
+            <text class="filter-reset-text">重置</text>
+          </view>
+          <view class="filter-confirm-btn" @tap="confirmFilters">
+            <text class="filter-confirm-text">确定</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
 
     <view class="activity-list">
       <view v-if="loading && activities.length === 0" class="empty">
@@ -54,7 +124,19 @@
           v-for="(activity, idx) in activities"
           :key="activity._id || `act-${idx}`"
           :activity="activity"
+          :isOwner="activity.hostId != null && activity.hostId === myOpenId"
+          :distance-km="
+            location?.latitude && location?.longitude &&
+            (activity as any).latitude != null && (activity as any).longitude != null
+              ? Math.round(calculateDistance(
+                  location.latitude, location.longitude,
+                  (activity as any).latitude, (activity as any).longitude
+                ))
+              : null
+          "
           @share-click="shareTargetActivity = $event"
+          @edit="handleEditActivity"
+          @delete="handleDeleteActivity"
         />
       </template>
     </view>
@@ -62,11 +144,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { onLoad, onPullDownRefresh, onShow, onHide, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/ActivityCard.vue'
 import type { Activity, LocationInfo } from '../../types'
-import { getActivities, joinActivity } from '../../services/activity'
+import { getActivities, joinActivity, deleteActivity } from '../../services/activity'
 import { checkLogin } from '../../services/user'
 import { getUserLocation } from '../../utils/location'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
@@ -80,11 +162,95 @@ const locationRequested = ref(false) // 防止重复请求位置
 const currentCity = ref('定位中') // 当前城市名称
 const searchKeyword = ref('') // 搜索关键词
 const searchFocused = ref(false) // 搜索框聚焦状态
+const showFilterPanel = ref(false) // 筛选面板显隐
+// NOTE: 当前登录用户 openid，用于判断是否为发起人（显示三点菜单）
+const myOpenId = ref<string | null>(null)
+
+// ── 筛选选项数据 ────────────────────────────────────────
+const distanceOptions = [
+  { label: '500m', value: '0.5' },
+  { label: '1km',  value: '1'   },
+  { label: '2km',  value: '2'   },
+  { label: '5km',  value: '5'   },
+  { label: '10km', value: '10'  },
+  { label: '20km', value: '20'  },
+]
+const timeSlotOptions = [
+  { label: '早上', value: 'morning' },
+  { label: '下午', value: 'afternoon' },
+  { label: '晚上', value: 'evening' },
+]
+
+// ── 已应用的筛选状态（点击确定后生效）──────────────────
+const selectedDistance = ref('')        // 距离范围
+// selectedFilter 已存在（DUPR）
+const selectedTimeSlots = ref<string[]>([])  // 时段（多选）
+
+// ── 面板内临时状态（编辑中，未确定）─────────────────────
+const pendingDistance  = ref('')
+const pendingDupr      = ref('')
+const pendingTimeSlots = ref<string[]>([])
+
+// ── 面板操作 ────────────────────────────────────────────
+function toggleFilterPanel() {
+  if (!showFilterPanel.value) {
+    // 打开面板时，把已生效的状态同步进 pending
+    pendingDistance.value  = selectedDistance.value
+    pendingDupr.value      = selectedFilter.value
+    pendingTimeSlots.value = [...selectedTimeSlots.value]
+    showFilterPanel.value  = true
+    // NOTE: 隐藏原生 tab bar，使 bottom-sheet 完整覆盖底部
+    // #ifdef MP-WEIXIN
+    ;(wx as any).hideTabBar()
+    // #endif
+  } else {
+    closeFilterPanel()
+  }
+}
+
+function closeFilterPanel() {
+  showFilterPanel.value = false
+  // NOTE: 恢复原生 tab bar
+  // #ifdef MP-WEIXIN
+  ;(wx as any).showTabBar()
+  // #endif
+}
+
+/** 时段多选切换 */
+function toggleTimeSlot(value: string) {
+  const idx = pendingTimeSlots.value.indexOf(value)
+  if (idx >= 0) {
+    pendingTimeSlots.value.splice(idx, 1)
+  } else {
+    pendingTimeSlots.value.push(value)
+  }
+}
+
+/** 重置所有 pending 状态 */
+function resetFilters() {
+  pendingDistance.value  = ''
+  pendingDupr.value      = ''
+  pendingTimeSlots.value = []
+}
+
+/** 确定：将 pending 状态写入已生效状态，触发过滤 */
+function confirmFilters() {
+  selectedDistance.value  = pendingDistance.value
+  selectedFilter.value    = pendingDupr.value
+  selectedTimeSlots.value = [...pendingTimeSlots.value]
+  closeFilterPanel()
+  applyFiltersAndSearch()
+}
+
+// NOTE: 筛选按钮 active 状态：任意维度有选中则高亮
+const hasActiveFilter = computed(() =>
+  !!(selectedDistance.value || selectedFilter.value || selectedTimeSlots.value.length)
+)
+
 const shareTargetActivity = ref<Activity | null>(null) // 点击卡片分享时，要分享的活动
 
-// 活动列表自动刷新间隔（毫秒），用于实时显示报名/退出情况
-const ACTIVITY_REFRESH_INTERVAL_MS = 1000
-let activityRefreshTimer: ReturnType<typeof setInterval> | null = null
+// NOTE: 不使用定时轮询，改为依靠 onShow 切回时静默刷新一次 + 用户主动下拉刷新
+// 原因：1s 轮询会导致卡片列表频繁变化，用户体验差，且浪费云函数调用次数
 
 // DUPR筛选选项
 const filters = [
@@ -104,6 +270,80 @@ onLoad((options: any) => {
     }
   }
 })
+
+// NOTE: 在筛选面板中切换城市：先关闭面板再跳转城市选择页
+function handleCitySelectFromFilter() {
+  showFilterPanel.value = false
+  // 延迟一帧，避免面板关闭动画与跳转冲突
+  setTimeout(() => {
+    uni.navigateTo({ url: '/pages/city-select/index' })
+  }, 150)
+}
+
+onShow(() => {
+  // NOTE: 同步当前用户 openid，用于广场页判断是否为发起人
+  const u = getCurrentUserFromCache()
+  myOpenId.value = u?.openid ?? null
+  loadActivities(true)
+})
+
+/** 广场页中发起人点三点 → 编辑 */
+function handleEditActivity(activity: Activity) {
+  if (!activity._id) return
+  if ((activity as any).isEnded) {
+    uni.showToast({ title: '活动已过开始时间，无法编辑', icon: 'none' })
+    return
+  }
+  uni.setStorageSync('editing_activity', {
+    _id: activity._id,
+    title: activity.title,
+    startDate: activity.startDate,
+    startTime: activity.startTime,
+    endTime: (activity as any).endTime,
+    address: activity.address,
+    venueName: activity.venueName,
+    latitude: activity.latitude,
+    longitude: activity.longitude,
+    maxParticipants: activity.maxParticipants,
+    fee: activity.fee,
+    duprLevel: activity.duprLevel,
+    description: (activity as any).description,
+    contactInfo: (activity as any).contactInfo
+  })
+  // NOTE: 同步备注文字和图片到 storage，让发起活动页 syncRemarkFromStorage 回填
+  uni.setStorageSync('editing_activity_remark', (activity as any).description || '')
+  uni.setStorageSync('editing_activity_remark_images', (activity as any).images || [])
+  uni.switchTab({ url: '/pages/create-activity/index' })
+}
+
+/** 广场页中发起人点三点 → 删除 */
+function handleDeleteActivity(activity: Activity) {
+  if (!activity._id) return
+  uni.showModal({
+    title: '确认删除',
+    content: `确定要删除活动「${activity.title}」吗？删除后无法恢复。`,
+    confirmText: '删除',
+    confirmColor: '#FF3B30',
+    success: async (res) => {
+      if (!res.confirm) return
+      try {
+        uni.showLoading({ title: '删除中...' })
+        const result = await deleteActivity(activity._id!)
+        uni.hideLoading()
+        if (result?.success === false) {
+          uni.showToast({ title: result.message || '删除失败', icon: 'none' })
+          return
+        }
+        uni.showToast({ title: '删除成功', icon: 'success' })
+        uni.$emit('activity-deleted', { activityId: activity._id })
+        await loadActivities()
+      } catch (err: any) {
+        uni.hideLoading()
+        uni.showToast({ title: err?.errMsg || err?.message || '删除失败', icon: 'none' })
+      }
+    }
+  })
+}
 
 // 加载活动列表（silent 为 true 时不显示 loading，用于定时刷新）
 async function loadActivities(silent = false) {
@@ -179,19 +419,9 @@ async function loadActivities(silent = false) {
   }
 }
 
-function clearActivityRefreshTimer() {
-  if (activityRefreshTimer != null) {
-    clearInterval(activityRefreshTimer)
-    activityRefreshTimer = null
-  }
-}
-
-function startActivityRefreshTimer() {
-  clearActivityRefreshTimer()
-  activityRefreshTimer = setInterval(() => {
-    loadActivities(true)
-  }, ACTIVITY_REFRESH_INTERVAL_MS)
-}
+// NOTE: clearActivityRefreshTimer / startActivityRefreshTimer 已废弃，保留空函数避免破坏调用点
+function clearActivityRefreshTimer() {}
+function startActivityRefreshTimer() {}
 
 // 应用搜索关键词和DUPR筛选，并按距离排序
 function applyFiltersAndSearch() {
@@ -275,14 +505,43 @@ function applyFiltersAndSearch() {
       return false
     })
   }
-  
-  // 3. 按发布时间排序（最新发布的在前，精确到秒）
+
+  // 3. 距离范围过滤（需要用户位置 + 活动坐标）
+  if (selectedDistance.value && location.value?.latitude && location.value?.longitude) {
+    // NOTE: 用 parseFloat 支持 0.5km（500m）这样的小数距离
+    const maxKm = parseFloat(selectedDistance.value)
+    const { latitude: userLat, longitude: userLon } = location.value
+    filteredList = filteredList.filter(a => {
+      if (a.latitude == null || a.longitude == null) return true // 无坐标不过滤
+      return calculateDistance(userLat, userLon, a.latitude, a.longitude) <= maxKm
+    })
+  }
+
+  // 4. 时段过滤（按活动 startTime 的 HH:mm 小时匹配）
+  if (selectedTimeSlots.value.length > 0) {
+    filteredList = filteredList.filter(activity => {
+      // NOTE: startTime 存储格式为 "HH:mm"（如 "09:00"、"19:30"）
+      // 不能用 new Date() 解析，直接取冒号前的小时数
+      const startTime = (activity as any).startTime as string | undefined
+      if (!startTime) return true // 无时间信息不参与过滤
+      const hour = parseInt(String(startTime).split(':')[0], 10)
+      if (isNaN(hour)) return true // 格式异常也不过滤
+      return selectedTimeSlots.value.some(slot => {
+        if (slot === 'morning')   return hour >= 6  && hour < 12
+        if (slot === 'afternoon') return hour >= 12 && hour < 18
+        if (slot === 'evening')   return hour >= 18 && hour < 24
+        return false
+      })
+    })
+  }
+
+  // 5. 按发布时间降序排序
   filteredList.sort((a, b) => {
     const timeA = (a as any).createdAt ?? 0
     const timeB = (b as any).createdAt ?? 0
     return timeB - timeA
   })
-  
+
   activities.value = filteredList
 }
 
@@ -579,141 +838,295 @@ onShareTimeline(() => {
 .index-page {
   min-height: 100vh;
   padding-bottom: 0;
-  background: $ios-bg-secondary;
+  // NOTE: 与个人页保持统一的品牌渐变背景
+  background: linear-gradient(
+    to bottom,
+    #EDF3FF 0%,
+    #EFEFF4 100%
+  );
   overflow-x: hidden;
   overflow-y: auto;
 }
 
-/* 顶部区域：Banner 在底层，定位/搜索/筛选叠在上方（参考图1） */
-.header-with-banner {
-  position: relative;
-  min-height: 160px;
+/* 顶部区域：透明背景，与页面底色融合 */
+.header-area {
+  background: transparent;
   flex-shrink: 0;
-}
-
-.banner-ad {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 160px;
-  overflow: hidden;
-}
-
-.banner-ad-img {
-  width: 100%;
-  height: 100%;
-  display: block;
 }
 
 .header-content {
-  position: relative;
-  z-index: 1;
-  padding: $ios-spacing-md $ios-spacing-lg $ios-spacing-md $ios-spacing-lg;
+  padding: $ios-spacing-md $ios-spacing-lg;
   padding-top: calc(#{$ios-spacing-md} + env(safe-area-inset-top));
 }
 
-.top-bar {
+// 三段式一体胶囊（全宽）
+.search-capsule {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  background: transparent !important;
+  height: 40px;
+  background: #ffffff;
+  border-radius: $ios-radius-lg;
+  // NOTE: 轻阴影增加浮起感和内容层次
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.10), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
-.city-selector {
+// 左段：城市选择
+.capsule-city {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 0;
-  min-width: 60px;
+  gap: 3px;
+  padding: 0 12px 0 14px;
+  flex-shrink: 0;
+  height: 100%;
+
+  &:active { opacity: 0.6; }
 }
 
-.city-name {
-  font-size: 16px;
+.capsule-location-emoji {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.capsule-city-name {
+  font-size: 13px;
   font-weight: $ios-font-weight-medium;
-  color: #fff;
+  color: $ios-text-primary;
   white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
-.dropdown-icon {
+.capsule-dropdown {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.9);
-  margin-top: 2px;
+  color: $ios-text-secondary;
+  margin-top: 1px;
 }
 
-.search-box-wrapper {
-  flex: 1;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  padding: 4px 12px;
-  min-height: 28px;
-  gap: 8px;
-}
-
-.search-icon {
-  width: 16px;
+// 竖分隔线
+.capsule-divider {
+  width: 0.5px;
   height: 16px;
+  background: rgba(0, 0, 0, 0.12);
   flex-shrink: 0;
 }
 
-.search-input {
+// 中段：搜索
+.capsule-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 100%;
+  min-width: 0;
+}
+
+.capsule-search-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  opacity: 0.4;
+}
+
+.capsule-input {
   flex: 1;
   font-size: 14px;
   color: $ios-text-primary;
   background: transparent;
   border: none;
-  
-  &::placeholder {
-    color: $ios-text-tertiary;
-  }
+  min-width: 0;
 }
 
-.filter-container {
-  width: 100%;
-  padding-top: 0;
-  padding-bottom: 8px;
+.capsule-input-placeholder {
+  color: $ios-text-tertiary;
+  font-size: 14px;
 }
 
-.filter-tags {
+// 右段：筛选（嵌入胶囊内）
+// NOTE: 固定宽度方形区域，点击响应好且不拉伸胶囊
+.capsule-filter {
+  width: 44px;
+  height: 100%;
   display: flex;
-  justify-content: space-between; /* 左右对齐分布 */
   align-items: center;
-  gap: 8px; /* 标签之间的间距 */
-  padding: 0; /* 移除内边距，让标签直接对齐容器边缘 */
-  flex-wrap: nowrap;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s ease;
+
+  &:active { opacity: 0.6; }
+
+  // NOTE: 有筛选时图标变蓝色
+  &--active {
+    .capsule-filter-icon { filter: none; opacity: 1; }
+  }
 }
 
-.filter-tag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center; /* 文字居中 */
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
+.capsule-filter-icon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.45;
+
+  // NOTE: 有筛选时染蓝
+  .capsule-filter--active & {
+    filter: hue-rotate(0deg) saturate(10) brightness(0.6);
+    opacity: 1;
+  }
+}
+
+// ── 筛选面板遮罩（全屏，覆盖 tab bar）──────────────────────
+.filter-overlay {
+  position: fixed;
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  // NOTE: 高于 tab bar 层级，使 bottom-sheet 完整遮住底部导航
+  z-index: 9999;
+  animation: filterMaskFadeIn 0.25s ease-out;
+}
+@keyframes filterMaskFadeIn {
+  from { background: transparent; }
+  to   { background: rgba(0, 0, 0, 0.45); }
+}
+
+// NOTE: bottom-sheet 本体，v-if 控制显隐，动画从底部滑入
+.filter-sheet {
+  background: #ffffff;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: filterSheetSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes filterSheetSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+// 顶部把手条
+.filter-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.18);
+  // NOTE: 把手与第一个分区之间预留足够空间
+  margin: 14px auto 4px;
+}
+
+// 每个筛选分区
+// NOTE: 上下边距较大，分区之间有明显呼吸感
+.filter-section {
+  padding: 16px 16px 8px;
+}
+
+.filter-section-title {
   font-size: 12px;
-  color: #333;
+  font-weight: $ios-font-weight-semibold;
+  color: $ios-text-tertiary;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+// NOTE: 城市切换行：无背景框，城市名左对齐，右箭头靠右
+.filter-city-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+
+  &:active { opacity: 0.7; }
+}
+
+.filter-city-name {
+  font-size: 15px;
   font-weight: $ios-font-weight-medium;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-  flex: 1; /* 每个标签平均分配空间，实现左右对齐分布 */
-  min-width: 0; /* 允许flex收缩 */
-  
-  &:active {
-    transform: scale(0.95);
+  color: $ios-text-primary;
+}
+
+.filter-city-arrow {
+  font-size: 14px;
+  color: $ios-text-tertiary;
+}
+
+// ── iOS 垂直列表选项（替代胶囊） ────────────────────────
+// 胶囊选项容器：横排，等宽平均分布
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+// 单个胶囊：矩形圆角，等宽
+.filter-chip {
+  flex: 1;
+  padding: 8px 4px;
+  background: $ios-bg-secondary;
+  border-radius: $ios-radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+
+  &:active { opacity: 0.7; }
+
+  // NOTE: 选中时蓝色实心
+  &--active {
+    background: $ios-blue;
+
+    .filter-chip-text { color: #fff; }
   }
-  
-  &.active {
-    background: rgba(255, 255, 255, 1);
-    color: $ios-blue;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
+}
+
+.filter-chip-text {
+  font-size: 14px;
+  color: $ios-text-primary;
+  font-weight: $ios-font-weight-regular;
+}
+
+// 底部重置/确定按钮行
+.filter-sheet-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 16px 8px;
+  border-top: 0.5px solid $ios-separator;
+  margin-top: 8px;
+}
+
+.filter-reset-btn {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $ios-bg-secondary;
+  border-radius: $ios-radius-md;
+
+  &:active { opacity: 0.7; }
+}
+
+.filter-reset-text {
+  font-size: 15px;
+  color: $ios-text-primary;
+  font-weight: $ios-font-weight-medium;
+}
+
+.filter-confirm-btn {
+  flex: 2;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $ios-blue;
+  border-radius: $ios-radius-md;
+
+  &:active { opacity: 0.85; }
+}
+
+.filter-confirm-text {
+  font-size: 15px;
+  color: #fff;
+  font-weight: $ios-font-weight-semibold;
 }
 
 .activity-list {

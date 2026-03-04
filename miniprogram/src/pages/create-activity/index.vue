@@ -12,23 +12,10 @@
 
           <!-- 主信息卡片：发起人 + 标题 + 时间 + 地点 + DUPR水平 + 人数 + 费用 + 联系方式 -->
           <view class="ios-section">
-            <!-- 发起人：头像紧贴标签右侧（靠左），昵称占满剩余宽度右对齐 -->
-            <view class="ios-cell ios-cell--initiator">
-            <image class="ios-cell__row-icon" src="/static/icons/faqiren.png" mode="aspectFit" />
-              <text class="ios-cell__label">发起人</text>
-              <image
-                v-if="currentUser?.avatarUrl"
-                class="ios-initiator__avatar"
-                :src="currentUser.avatarUrl"
-                mode="aspectFill"
-              />
-              <view v-else class="ios-initiator__avatar ios-initiator__avatar--placeholder" />
-              <text class="ios-initiator__name">{{ currentUser?.nickName || '...' }}</text>
-            </view>
 
             <!-- 标题 -->
             <view class="ios-cell ios-cell--input">
-              <image class="ios-cell__row-icon" src="/static/icons/icon_title.png" mode="aspectFit" />
+              <image class="ios-cell__row-icon" src="/static/icons/biaotitubiao.png" mode="aspectFit" />
               <text class="ios-cell__label">标题</text>
               <input
                 class="ios-cell__input ios-cell__input--right"
@@ -41,7 +28,7 @@
 
             <!-- 时间：三列选择器（日期+星期 | 开始时间 | 结束时间） -->
             <view class="ios-cell ios-cell--tap">
-              <image class="ios-cell__row-icon" src="/static/icons/shijian.png" mode="aspectFit" />
+              <image class="ios-cell__row-icon" src="/static/icons/shijian-2.png" mode="aspectFit" />
               <text class="ios-cell__label">时间</text>
               <picker
                 mode="multiSelector"
@@ -60,7 +47,7 @@
 
             <!-- 地点 -->
             <view class="ios-cell ios-cell--tap" @tap="handleChooseLocation">
-              <image class="ios-cell__row-icon" src="/static/icons/dingwei.png" mode="aspectFit" />
+              <image class="ios-cell__row-icon" src="/static/icons/zhiyuandidian4.png" mode="aspectFit" />
               <text class="ios-cell__label">地点</text>
               <view class="ios-cell__value ios-cell__value--right ios-cell__value--ellipsis">
                 <text v-if="venueName || address">{{ venueName || address }}</text>
@@ -71,7 +58,7 @@
 
             <!-- DUPR 水平 -->
             <view class="ios-cell ios-cell--tap">
-              <image class="ios-cell__row-icon" src="/static/icons/dupr.png" mode="aspectFit" />
+              <image class="ios-cell__row-icon" src="/static/icons/pikeqiu-2.png" mode="aspectFit" />
               <text class="ios-cell__label">DUPR 水平</text>
               <view class="ios-cell__value ios-cell__value--right">
                 <picker
@@ -88,23 +75,24 @@
               <text class="ios-cell__chevron">›</text>
             </view>
 
-            <!-- 人数 -->
-            <view class="ios-cell ios-cell--input">
-              <image class="ios-cell__row-icon" src="/static/icons/renshu.png" mode="aspectFit" />
+            <!-- 人数：步进器 -->
+            <view class="ios-cell">
+              <image class="ios-cell__row-icon" src="/static/icons/renshu-2.png" mode="aspectFit" />
               <text class="ios-cell__label">人数</text>
-              <input
-                class="ios-cell__input ios-cell__input--right"
-                type="number"
-                placeholder="输入人数"
-                placeholder-class="ios-input-placeholder"
-                :value="maxParticipantsInput"
-                @input="onMaxParticipantsInput"
-              />
+              <view class="stepper">
+                <view class="stepper-btn" @tap="stepDown">
+                  <text class="stepper-btn-text">−</text>
+                </view>
+                <text class="stepper-value">{{ maxParticipantsInput || '8' }}</text>
+                <view class="stepper-btn" @tap="stepUp">
+                  <text class="stepper-btn-text">+</text>
+                </view>
+              </view>
             </view>
 
             <!-- 费用：数字输入 + 固定「元/人」后缀 -->
             <view class="ios-cell ios-cell--fee">
-              <image class="ios-cell__row-icon" src="/static/icons/feiyong.png" mode="aspectFit" />
+              <image class="ios-cell__row-icon" src="/static/icons/feiyongdanju.png" mode="aspectFit" />
               <text class="ios-cell__label">费用</text>
               <view class="ios-fee-row">
                 <input
@@ -119,15 +107,33 @@
               </view>
             </view>
 
-            <!-- 联系方式 -->
-            <view class="ios-cell ios-cell--input">
-              <image class="ios-cell__row-icon" src="/static/icons/lianxi.png" mode="aspectFit" />
+            <!-- 联系方式：类型切换 + 输入框 -->
+            <view class="ios-cell ios-cell--contact">
+              <image class="ios-cell__row-icon" src="/static/icons/lianxifangshi.png" mode="aspectFit" />
               <text class="ios-cell__label">联系方式</text>
+              <!-- 类型切换胶囊 -->
+              <view class="contact-type-tabs">
+                <view
+                  class="contact-type-tab"
+                  :class="{ 'contact-type-tab--active': contactTypeTouched && contactType === 'phone' }"
+                  @tap="selectContactType('phone')"
+                >
+                  <text class="contact-type-tab-text">手机</text>
+                </view>
+                <view
+                  class="contact-type-tab"
+                  :class="{ 'contact-type-tab--active': contactTypeTouched && contactType === 'wechat' }"
+                  @tap="selectContactType('wechat')"
+                >
+                  <text class="contact-type-tab-text">微信</text>
+                </view>
+              </view>
               <input
-                class="ios-cell__input ios-cell__input--right"
-                placeholder="手机号或微信号"
+                class="ios-contact-input"
+                :type="contactType === 'phone' ? 'number' : 'text'"
+                :placeholder="contactType === 'phone' ? '请输入手机号' : '请输入微信号'"
                 placeholder-class="ios-input-placeholder"
-                :value="contactInfo"
+                :value="activeContactInfo"
                 @input="onContactInput"
               />
             </view>
@@ -201,8 +207,29 @@ const latitude = ref<number | undefined>()
 const longitude = ref<number | undefined>()
 const maxParticipantsInput = ref('')
 const fee = ref('')
-const contactInfo = ref('')
+// NOTE: 手机和微信号独立存储，切换类型时各自空白，不互相污染
+const phoneContact = ref('')
+const wechatContact = ref('')
+// NOTE: 联系方式类型：phone | wechat，默认手机
+const contactType = ref<'phone' | 'wechat'>('phone')
+// NOTE: 初始不高亮任何胶囊，与其他字段初始空白状态保持视觉一致；用户首次点击后才激活蓝色选中态
+const contactTypeTouched = ref(false)
+
+function selectContactType(type: 'phone' | 'wechat') {
+  contactType.value = type
+  contactTypeTouched.value = true
+}
+// NOTE: 当前激活输入框绑定的字段
+const activeContactInfo = computed(() =>
+  contactType.value === 'phone' ? phoneContact.value : wechatContact.value
+)
 const description = ref('')
+// NOTE: 备注页选择的图片临时路径/cloud URL列表
+const remarkImages = ref<string[]>([])
+// NOTE: 标记用户是否手动选择了地点，防止 onShow 重新加载时被旧地址覆盖
+const locationManuallySet = ref(false)
+// NOTE: 头像加载完成标记，用于触发淡入动画
+const avatarLoaded = ref(false)
 
 const submitting = ref(false)
 const editingActivityId = ref<string | null>(null)
@@ -218,7 +245,7 @@ const canSubmit = computed(() =>
   maxParticipantsInput.value.trim().length > 0 &&
   Number(maxParticipantsInput.value) > 0 &&
   fee.value.trim().length > 0 &&
-  contactInfo.value.trim().length > 0 &&
+  activeContactInfo.value.trim().length > 0 &&
   // NOTE: 必须勾选免责声明才能发布
   disclaimerAccepted.value
 )
@@ -282,12 +309,13 @@ const timeDisplayText = computed(() => {
   return `${dateLabel} ${timePart}`
 })
 
-// 读取 remark 编辑页保存的内容
+// 读取 remark 编辑页保存的内容（文字 + 图片）
 function syncRemarkFromStorage() {
   const cached = uni.getStorageSync('editing_activity_remark')
-  if (typeof cached === 'string') {
-    description.value = cached
-  }
+  if (typeof cached === 'string') description.value = cached
+
+  const cachedImages = uni.getStorageSync('editing_activity_remark_images')
+  if (Array.isArray(cachedImages)) remarkImages.value = cachedImages
 }
 
 // 从本地缓存读取正在编辑的活动，并预填充到表单中
@@ -309,13 +337,26 @@ function applyEditingActivityFromStorage() {
     startDate.value = editingActivity.startDate || ''
     startTime.value = editingActivity.startTime || ''
     endTime.value = editingActivity.endTime || ''
-    address.value = editingActivity.address || ''
-    venueName.value = editingActivity.venueName || ''
-    latitude.value = editingActivity.latitude
-    longitude.value = editingActivity.longitude
+    // NOTE: 只有用户未手动选地点时才回填旧地址，避免视图层覆盖用户刚选的新地址
+    if (!locationManuallySet.value) {
+      address.value = editingActivity.address || ''
+      venueName.value = editingActivity.venueName || ''
+      latitude.value = editingActivity.latitude
+      longitude.value = editingActivity.longitude
+    }
     maxParticipantsInput.value = editingActivity.maxParticipants ? String(editingActivity.maxParticipants) : '8'
     fee.value = editingActivity.fee != null ? String(editingActivity.fee) : ''
-    contactInfo.value = editingActivity.contactInfo || ''
+    // NOTE: 判断联系方式类型：全数字 → 手机，否则 → 微信
+    const savedContact = editingActivity.contactInfo || ''
+    if (/^\d+$/.test(savedContact)) {
+      contactType.value = 'phone'
+      contactTypeTouched.value = true
+      phoneContact.value = savedContact
+    } else {
+      contactType.value = 'wechat'
+      contactTypeTouched.value = true
+      wechatContact.value = savedContact
+    }
     // NOTE: 将旧格式（纯数字区间）映射到新带前缀格式，兼容历史数据
     const legacyDuprMap: Record<string, string> = {
       '1.0-2.5': '初级 1.0-2.5',
@@ -337,6 +378,8 @@ async function handleChooseLocation() {
     venueName.value = loc.name || ''
     latitude.value = loc.latitude
     longitude.value = loc.longitude
+    // NOTE: 标记已手动选地，防止小程序地图选点关闭后 onShow 重新加载时覆盖地址
+    locationManuallySet.value = true
     try {
       const cache: LocationInfo = {
         latitude: loc.latitude,
@@ -370,11 +413,26 @@ function onDuprChange(e: any) {
 function onMaxParticipantsInput(e: any) {
   maxParticipantsInput.value = e?.detail?.value ?? ''
 }
+
+// NOTE: 步进器减少（最小 2）
+function stepDown() {
+  const cur = parseInt(maxParticipantsInput.value) || 8
+  if (cur > 2) maxParticipantsInput.value = String(cur - 1)
+}
+
+// NOTE: 步进器增加（最大 50）
+function stepUp() {
+  const cur = parseInt(maxParticipantsInput.value) || 8
+  if (cur < 50) maxParticipantsInput.value = String(cur + 1)
+}
 function onFeeInput(e: any) {
   fee.value = e?.detail?.value ?? ''
 }
 function onContactInput(e: any) {
-  contactInfo.value = e?.detail?.value ?? ''
+  const val = e?.detail?.value ?? ''
+  // NOTE: 各类型独立写入，切换类型后另一个字段保持原值
+  if (contactType.value === 'phone') phoneContact.value = val
+  else wechatContact.value = val
 }
 
 function onDescriptionInput(e: any) {
@@ -383,6 +441,7 @@ function onDescriptionInput(e: any) {
 
 function goToRemarkEdit() {
   uni.setStorageSync('editing_activity_remark', description.value || '')
+  uni.setStorageSync('editing_activity_remark_images', remarkImages.value)
   uni.navigateTo({ url: '/pages/edit-remark/index' })
 }
 
@@ -395,25 +454,30 @@ function handleBack() {
 function handleSubmitClick() {
   if (submitting.value) return
 
-  // 收集所有未填字段
-  const missing: string[] = []
-  if (!title.value.trim()) missing.push('标题')
-  if (!startDate.value || !startTime.value) missing.push('时间')
-  if (!venueName.value.trim() && !address.value.trim()) missing.push('地点')
-  if (!selectedDupr.value) missing.push('DUPR 水平')
-  if (!maxParticipantsInput.value.trim() || Number(maxParticipantsInput.value) <= 0) missing.push('人数')
-  if (!fee.value.trim()) missing.push('费用')
-  if (!contactInfo.value.trim()) missing.push('联系方式')
-  if (!disclaimerAccepted.value) missing.push('免责声明未勾选')
-
-  if (missing.length > 0) {
-    uni.showModal({
-      title: '请完善以下信息',
-      content: missing.join('、'),
-      showCancel: false,
-      confirmText: '知道了'
-    })
-    return
+  // NOTE: 只提示第一个未填项，用 toast 轻提示，不打断用户操作
+  if (!title.value.trim()) {
+    uni.showToast({ title: '请输入标题', icon: 'none' }); return
+  }
+  if (!startDate.value || !startTime.value) {
+    uni.showToast({ title: '请选择时间', icon: 'none' }); return
+  }
+  if (!venueName.value.trim() && !address.value.trim()) {
+    uni.showToast({ title: '请选择地点', icon: 'none' }); return
+  }
+  if (!selectedDupr.value) {
+    uni.showToast({ title: '请选择DUPR水平', icon: 'none' }); return
+  }
+  if (!maxParticipantsInput.value.trim() || Number(maxParticipantsInput.value) <= 0) {
+    uni.showToast({ title: '请输入人数', icon: 'none' }); return
+  }
+  if (!fee.value.trim()) {
+    uni.showToast({ title: '请输入费用', icon: 'none' }); return
+  }
+  if (!activeContactInfo.value.trim()) {
+    uni.showToast({ title: '请输入联系方式', icon: 'none' }); return
+  }
+  if (!disclaimerAccepted.value) {
+    uni.showToast({ title: '请先阅读并同意免责声明', icon: 'none' }); return
   }
 
   handleSubmit()
@@ -448,6 +512,28 @@ async function handleSubmit() {
     return
   }
 
+  // NOTE: 备注图片：临时路径上传到云存储，获取 fileID
+  let uploadedImages: string[] = []
+  // #ifdef MP-WEIXIN
+  if (remarkImages.value.length > 0) {
+    uni.showLoading({ title: '处理图片...' })
+    try {
+      const tasks = remarkImages.value.map((path, i) => {
+        // 已是 cloud:// 的跳过重传
+        if (path.startsWith('cloud://')) return Promise.resolve(path)
+        const cloudPath = `activity-remarks/${Date.now()}-${i}.jpg`
+        return (wx as any).cloud.uploadFile({ cloudPath, filePath: path })
+          .then((r: any) => r.fileID as string)
+      })
+      uploadedImages = await Promise.all(tasks)
+    } catch (e) {
+      console.error('图片上传失败:', e)
+    } finally {
+      uni.hideLoading()
+    }
+  }
+  // #endif
+
   const payload = {
     title: title.value.trim(),
     startDate: startDate.value,
@@ -459,9 +545,11 @@ async function handleSubmit() {
     longitude: longitude.value,
     maxParticipants: maxNum,
     fee: feeNum,
-    contactInfo: contactInfo.value.trim() || undefined,
+    contactInfo: activeContactInfo.value.trim() || undefined,
+    contactType: contactType.value,
     duprLevel: selectedDupr.value || undefined,
-    description: description.value.trim() || undefined
+    description: description.value.trim() || undefined,
+    images: uploadedImages.length > 0 ? uploadedImages : undefined
   }
 
   submitting.value = true
@@ -510,13 +598,18 @@ function resetForm() {
   longitude.value = undefined
   maxParticipantsInput.value = ''
   fee.value = ''
-  contactInfo.value = ''
+  phoneContact.value = ''
+  wechatContact.value = ''
   description.value = ''
   selectedDupr.value = ''
   editingActivityId.value = null
   // 清空备注缓存
   uni.removeStorageSync('editing_activity_remark')
+  uni.removeStorageSync('editing_activity_remark_images')
   uni.removeStorageSync('editing_activity_id')
+  remarkImages.value = []
+  locationManuallySet.value = false
+  contactTypeTouched.value = false
 }
 
 // 初始：加载当前用户信息 + 缓存位置 + 编辑数据 + 备注
@@ -566,7 +659,12 @@ onShow(() => {
 .create-page {
   // NOTE: 固定为一屏高度，scroll-view 内部处理滚动
   height: 100%;
-  background: $ios-bg-secondary;
+  // NOTE: 与个人页保持统一的品牌渐变背景
+  background: linear-gradient(
+    to bottom,
+    #EDF3FF 0%,
+    #EFEFF4 100%
+  );
   display: flex;
   flex-direction: column;
 }
@@ -584,9 +682,9 @@ onShow(() => {
 
 .ios-section {
   background: $ios-bg-primary;
-  border-radius: 0;
-  // NOTE: 缩小 section 间距，适配一屏显示
-  margin-bottom: $ios-spacing-sm;
+  border-radius: 14px;
+  // NOTE: margin-bottom 与左右边距统一为 16px，卡片间距与边距一致，整体更规整
+  margin: 0 16px $ios-spacing-lg;
   overflow: hidden;
 }
 
@@ -594,18 +692,19 @@ onShow(() => {
 .create-back-row {
   display: inline-flex;
   align-items: center;
-  padding: $ios-spacing-sm $ios-spacing-lg $ios-spacing-xs;
+  // NOTE: 底部增大到 lg，与信息卡片拉开呼吸间距
+  padding: $ios-spacing-sm $ios-spacing-lg $ios-spacing-lg;
 }
 
 .create-back-icon {
   font-size: 22px;
-  color: $ios-blue;
+  color: #333333;
   margin-right: 2px;
 }
 
 .create-back-text {
   font-size: 16px;
-  color: $ios-blue;
+  color: #333333;
 }
 
 // NOTE: 发起人行：头像紧贴标签右侧、昵称占剩余布局并靠右
@@ -621,19 +720,31 @@ onShow(() => {
   margin-right: 6px;
 }
 
-.ios-initiator__avatar {
-  // NOTE: 缩小头像尺寸以节省垂直空间
+// NOTE: 头像内容容器：始终显示占位灰圆，相对定位容纳出现的头像
+.ios-initiator__avatar-wrap {
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
   margin-right: $ios-spacing-xs;
-  // NOTE: 与广场页 card-avatar-wrap 一致，避免白色头像与白底融合
+  background: $ios-bg-tertiary;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
-.ios-initiator__avatar--placeholder {
-  background: $ios-bg-tertiary;
+.ios-initiator__avatar {
+  // NOTE: 默认不可见，加载完成后通过 --loaded 类淡入
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+
+  &--loaded {
+    opacity: 1;
+  }
 }
 
 .ios-initiator__name {
@@ -746,6 +857,86 @@ onShow(() => {
 }
 
 // NOTE: 费用栏：数字输入居右，「元/人」固定后缀
+// ── 步进器（人数栏）────────────────────────────────────────
+.stepper {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.stepper-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: $ios-bg-secondary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &:active { opacity: 0.6; }
+}
+
+.stepper-btn-text {
+  font-size: 20px;
+  font-weight: $ios-font-weight-medium;
+  color: #333333;
+  line-height: 1;
+}
+
+.stepper-value {
+  min-width: 44px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: $ios-font-weight-regular;
+  color: $ios-text-primary;
+}
+
+// ── 联系方式：类型切换胶囊 ──────────────────────────────────
+.ios-cell--contact {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  min-height: 60px;
+  align-items: center;
+}
+
+.contact-type-tabs {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.contact-type-tab {
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: $ios-bg-secondary;
+  transition: all 0.15s ease;
+
+  &--active {
+    background: $ios-blue;
+    .contact-type-tab-text { color: #fff; }
+  }
+
+  &:active { opacity: 0.7; }
+}
+
+.contact-type-tab-text {
+  font-size: 13px;
+  color: $ios-text-secondary;
+  white-space: nowrap;
+}
+
+.ios-contact-input {
+  flex: 1;
+  min-width: 80px;
+  font-size: 16px;
+  color: $ios-text-primary;
+  text-align: right;
+}
+
 .ios-cell--fee {
   // 继承 ios-cell flex 布局
 }
@@ -798,8 +989,8 @@ onShow(() => {
 }
 
 .create-footer {
-  // NOTE: 缩减底部按钮区域上下间距，紧贴表单，适配不同屏幕高度
-  padding: $ios-spacing-sm $ios-spacing-lg calc($ios-spacing-md + env(safe-area-inset-bottom));
+  // NOTE: 上下留白增大，与免责声明区保持舒适间距
+  padding: $ios-spacing-md $ios-spacing-lg calc($ios-spacing-lg + env(safe-area-inset-bottom));
   background: $ios-bg-secondary;
   flex-shrink: 0;
 }
@@ -826,8 +1017,9 @@ onShow(() => {
 .disclaimer-row {
   display: flex;
   align-items: center;
-  // NOTE: 免责声明行收紧 padding，减少垂直占用
-  padding: $ios-spacing-xs $ios-spacing-lg;
+  // NOTE: 与信息卡片拉开距离，给表单底部留出舒适的呼吸空间
+  margin-top: 24px;
+  padding: $ios-spacing-sm $ios-spacing-lg;
   flex-shrink: 0;
 }
 
