@@ -26,6 +26,30 @@
             <image class="capsule-filter-icon" src="/static/icons/shaixuan.png" mode="aspectFit" />
           </view>
         </view>
+        <!-- NOTE: 城市按钮 + 排序标签合并一行：左侧城市可点击切换，右侧排序 -->
+        <view class="sort-tabs">
+          <!-- 城市入口 -->
+          <view class="city-btn" @tap="handleCitySelect">
+            <text class="city-btn-icon">📍</text>
+            <text class="city-btn-name">{{ currentCity || '定位中' }}</text>
+          </view>
+          <view class="sort-tab-divider" />
+          <view
+            class="sort-tab"
+            :class="{ 'sort-tab--active': sortOrder === 'latest' }"
+            @tap="setSortOrder('latest')"
+          >
+            <text class="sort-tab-text">最新发布</text>
+          </view>
+          <view class="sort-tab-divider" />
+          <view
+            class="sort-tab"
+            :class="{ 'sort-tab--active': sortOrder === 'distance' }"
+            @tap="setSortOrder('distance')"
+          >
+            <text class="sort-tab-text">距离最近</text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -41,15 +65,6 @@
         <!-- 顶部把手 -->
         <view class="filter-sheet-handle" />
 
-        <!-- 城市切换：显示当前城市，点击跳转选择页 -->
-        <view class="filter-section filter-section--city">
-          <text class="filter-section-title">当前城市</text>
-          <view class="filter-city-row" @tap="handleCitySelectFromFilter">
-            <text class="filter-city-icon">📍</text>
-            <text class="filter-city-name">{{ currentCity || '定位中...' }}</text>
-            <text class="filter-city-arrow">❯</text>
-          </view>
-        </view>
 
         <!-- 距离范围 -->
         <view class="filter-section">
@@ -163,6 +178,9 @@ const currentCity = ref('定位中') // 当前城市名称
 const searchKeyword = ref('') // 搜索关键词
 const searchFocused = ref(false) // 搜索框聚焦状态
 const showFilterPanel = ref(false) // 筛选面板显隐
+// NOTE: 排序方式：''=默认（服务器顺序/时间降序），'latest'=最新发布，'distance'=距离最近
+// 初始两个标签均未选中，点击选中，再次点击取消选中恢复默认
+const sortOrder = ref<'latest' | 'distance' | ''>('')
 // NOTE: 当前登录用户 openid，用于判断是否为发起人（显示三点菜单）
 const myOpenId = ref<string | null>(null)
 
@@ -271,14 +289,6 @@ onLoad((options: any) => {
   }
 })
 
-// NOTE: 在筛选面板中切换城市：先关闭面板再跳转城市选择页
-function handleCitySelectFromFilter() {
-  showFilterPanel.value = false
-  // 延迟一帧，避免面板关闭动画与跳转冲突
-  setTimeout(() => {
-    uni.navigateTo({ url: '/pages/city-select/index' })
-  }, 150)
-}
 
 onShow(() => {
   // NOTE: 同步当前用户 openid，用于广场页判断是否为发起人
@@ -535,14 +545,46 @@ function applyFiltersAndSearch() {
     })
   }
 
-  // 5. 按发布时间降序排序
-  filteredList.sort((a, b) => {
-    const timeA = (a as any).createdAt ?? 0
-    const timeB = (b as any).createdAt ?? 0
-    return timeB - timeA
-  })
+  // 5. 排序
+  if (sortOrder.value === 'distance' && location.value?.latitude && location.value?.longitude) {
+    // NOTE: 距离最近：按与用户位置的距离升序；无坐标的活动排在最后
+    const { latitude: uLat, longitude: uLon } = location.value
+    filteredList.sort((a, b) => {
+      const dA = (a.latitude != null && a.longitude != null)
+        ? calculateDistance(uLat, uLon, a.latitude, a.longitude)
+        : Infinity
+      const dB = (b.latitude != null && b.longitude != null)
+        ? calculateDistance(uLat, uLon, b.latitude, b.longitude)
+        : Infinity
+      return dA - dB
+    })
+  } else {
+    // NOTE: 最新发布：按 createdAt 降序
+    filteredList.sort((a, b) => {
+      const timeA = (a as any).createdAt ?? 0
+      const timeB = (b as any).createdAt ?? 0
+      return timeB - timeA
+    })
+  }
 
   activities.value = filteredList
+}
+
+/** 切换排序方式：再次点击同一标签则取消选中，恢复默认顺序 */
+function setSortOrder(order: 'latest' | 'distance') {
+  // NOTE: 再次点击已选中的标签 → 取消选中，恢复默认
+  if (sortOrder.value === order) {
+    sortOrder.value = ''
+    applyFiltersAndSearch()
+    return
+  }
+  // NOTE: 距离排序需要用户位置，若无定位给出友好提示
+  if (order === 'distance' && !location.value?.latitude) {
+    uni.showToast({ title: '获取位置中，请稍候', icon: 'none' })
+    return
+  }
+  sortOrder.value = order
+  applyFiltersAndSearch()
 }
 
 // 搜索输入处理
@@ -857,6 +899,77 @@ onShareTimeline(() => {
 .header-content {
   padding: $ios-spacing-md $ios-spacing-lg;
   padding-top: calc(#{$ios-spacing-md} + env(safe-area-inset-top));
+}
+
+// NOTE: 排序切换标签行：搜索栏下方，左对齐两个 tab
+.sort-tabs {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  gap: 0;
+}
+
+.sort-tab {
+  padding: 4px 0;
+  position: relative;
+  cursor: pointer;
+
+  &--active .sort-tab-text {
+    color: $ios-blue;
+    font-weight: $ios-font-weight-semibold;
+  }
+
+  // NOTE: 选中态下划线
+  &--active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: $ios-blue;
+    border-radius: 1px;
+  }
+}
+
+.sort-tab-text {
+  font-size: 13px;
+  color: $ios-text-secondary;
+  line-height: 1.4;
+}
+
+// 两个 tab 中间竖线分隔
+.sort-tab-divider {
+  width: 1px;
+  height: 12px;
+  background: $ios-separator;
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+
+// NOTE: 城市按钮：左侧定位图标 + 城市名 + 隐式箭头，与排序标签视觉统一
+.city-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+  &:active { opacity: 0.6; }
+}
+
+.city-btn-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.city-btn-name {
+  font-size: 13px;
+  color: $ios-text-secondary;
+  line-height: 1.4;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 // 三段式一体胶囊（全宽）

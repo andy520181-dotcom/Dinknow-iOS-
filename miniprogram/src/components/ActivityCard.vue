@@ -21,11 +21,11 @@
 
       <!-- 活动信息块（右） -->
       <view class="card-info-block">
-        <!-- 标题（标题文字 + 右侧距离标签） -->
+        <!-- 标题（标题文字 + 右侧发布时间） -->
         <view class="card-title-row">
           <text class="card-title">{{ activity.title }}</text>
-          <!-- NOTE: 仅用户已授权位置且活动有坐标时显示距离 -->
-          <text v-if="props.distanceKm != null" class="card-distance-badge">📍 {{ props.distanceKm }}km</text>
+          <!-- NOTE: 发布时间置于标题右侧，低视觉权重 -->
+          <text v-if="publishedAgo" class="card-published-badge">{{ publishedAgo }}</text>
         </view>
 
         <!-- 时间 + 地点行 -->
@@ -57,6 +57,8 @@
             <image class="info-icon-img" src="/static/icons/feiyongdanju.png" mode="aspectFit" />
             <text class="info-text">{{ feeText }}</text>
           </view>
+          <!-- NOTE: 距离标签置于信息块右下角（分割线上方），与报名决策场景更贴近 -->
+          <text v-if="props.distanceKm != null" class="card-distance-badge">📍 {{ props.distanceKm }}km</text>
         </view>
       </view>
 
@@ -175,18 +177,24 @@ const emit = defineEmits<{
   leave: [activity: Activity]
 }>()
 
-/** 参加者三点菜单：退出活动 */
+/** 参加者三点菜单 */
 function showJoinedMenu() {
-  // NOTE: 已结束：超过结束时间（或无 endTime 时超过开始时间1分钟）
-  if (isEnded.value) {
-    uni.showToast({ title: '活动已结束，无法退出', icon: 'none' })
-    return
-  }
-  // NOTE: 进行中：已过开始时间但未超过结束时间
+  // NOTE: 进行中：活动正在发生，参与记录对发起人可见，不允许任何操作
   if (isActivityInProgress(props.activity)) {
-    uni.showToast({ title: '活动正在进行中，无法退出', icon: 'none' })
+    uni.showToast({ title: '活动正在进行中，无法操作', icon: 'none' })
     return
   }
+  // NOTE: 已结束：不能撤回报名，但允许用户删除该历史记录
+  if (isEnded.value) {
+    uni.showActionSheet({
+      itemList: ['删除记录'],
+      success: (res) => {
+        if (res.tapIndex === 0) emit('leave', props.activity)
+      }
+    })
+    return
+  }
+  // NOTE: 未开始：正常退出报名流程
   uni.showActionSheet({
     itemList: ['退出活动'],
     success: (res) => {
@@ -276,6 +284,24 @@ const duprLevel = computed(() => {
 
 // ── 活动状态 ─────────────────────────────────────────
 const isEnded = computed(() => isActivityEnded(props.activity))
+
+// NOTE: 将 createdAt 时间戳转为相对时间描述，如"3小时前"/"昨天"
+const publishedAgo = computed(() => {
+  const ts = (props.activity as any).createdAt
+  if (!ts) return ''
+  const diff = Date.now() - Number(ts)
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1)  return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24)   return `${hours}小时前`
+  const days = Math.floor(hours / 24)
+  if (days === 1)   return '昨天'
+  if (days < 30)    return `${days}天前`
+  const months = Math.floor(days / 30)
+  if (months < 12)  return `${months}个月前`
+  return `${Math.floor(months / 12)}年前`
+})
 
 // NOTE: 根据活动类型计算可报名名额（不含发起人）
 const availableSlots = computed(() => {
@@ -460,6 +486,16 @@ async function handleJoinClick() {
   line-height: 1.2;
 }
 
+// NOTE: 发布时间，昵称下方，极小灰字，低视觉权重
+.host-published-at {
+  font-size: 9px;
+  color: $ios-text-tertiary;
+  text-align: center;
+  max-width: 56px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .host-avatar-img {
   width: 60px;
   height: 60px;
@@ -521,11 +557,21 @@ async function handleJoinClick() {
   overflow: hidden;
 }
 
-// NOTE: 距离小标签，灰色小字，flex-shrink:0 防止被标题压缩
+// NOTE: 距离标签（位于 DUPR·人数·费用行右端，分割线上方）
 .card-distance-badge {
   margin-left: auto;
   padding-left: 8px;
   font-size: 12px;
+  color: $ios-text-tertiary;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+// NOTE: 标题行右侧发布时间，极小灰字，低视觉权重
+.card-published-badge {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 11px;
   color: $ios-text-tertiary;
   flex-shrink: 0;
   white-space: nowrap;
@@ -648,13 +694,22 @@ async function handleJoinClick() {
   background: rgba(0, 0, 0, 0.06);
 }
 
-// ── 报名区域：头像网格(左) + 报名按钮(右) ──────────────────────────
-// NOTE: 横向布局，头像网格 flex:1 不遮挡头像，按钮固定右侧不增加卡片高度
+// ── 报名区域：头像网格(左) + 报名按钮区域(右) ──────────────────────────
+// NOTE: 横向布局，头像网格 flex:1 不遇挡头像，按钮固定右侧不增加卡片高度
 .card-footer {
   display: flex;
   flex-direction: row;
   align-items: flex-end;
   gap: 8px;
+}
+
+// NOTE: footer 右侧容器：距离标签 + 报名按钮纵向排列，中间间距
+.footer-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 // 报名人员头像网格：5列自动换行，最多3行（15个）
