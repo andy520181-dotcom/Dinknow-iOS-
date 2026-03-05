@@ -184,7 +184,7 @@
               <text class="ios-cell__label">备注</text>
               <view class="ios-cell__value ios-cell__value--right ios-cell__value--ellipsis">
                 <text v-if="description">{{ description }}</text>
-                <text v-else class="ios-cell__placeholder">选填，如注意事项、装备要求等</text>
+                <text v-else class="ios-cell__placeholder">选填</text>
               </view>
               <text class="ios-cell__chevron">›</text>
             </view>

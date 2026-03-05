@@ -614,6 +614,19 @@ async function loadActivityDetail(forceRefresh = false) {
         ...detail,
         hostAvatar: keepHostAvatar ? prevHostAvatar : (newHostAvatar || prevHostAvatar || '')
       } as Record<string, unknown>
+      // NOTE: 保留缓存中已有的 images URL，避免 URL 引用变化触发图片重载闪烁
+      // 与头像防闪烁策略一致：只有缓存 URL 已是 http(s) 时才保留，
+      // cloud:// URL 不能直接显示，必须使用云函数返回的新 temp URL
+      const prevImages = (prev as any)?.images
+      const newImages = (detail as any)?.images
+      if (
+        prevImages && Array.isArray(prevImages) && prevImages.length > 0 &&
+        newImages && Array.isArray(newImages) && newImages.length === prevImages.length &&
+        prevImages.every((url: string) => typeof url === 'string' && url.startsWith('http'))
+      ) {
+        // 缓存中图片已是稳定 https URL，保留旧引用避免重载闪烁
+        merged.images = prevImages
+      }
       merged.hostRegion = detailAny.hostRegion
       merged.hostSignature = detailAny.hostSignature
       const oldParticipants = prev?.participants || []
