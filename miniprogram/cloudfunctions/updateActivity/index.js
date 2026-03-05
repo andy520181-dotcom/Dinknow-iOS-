@@ -63,6 +63,36 @@ exports.main = async (event, context) => {
     if (contactType != null) updateData.contactType = contactType
     if (images != null) updateData.images = Array.isArray(images) && images.length > 0 ? images : undefined
 
+    // NOTE: 内容安全检测 —— 编辑活动同样需要检测
+    try {
+      const textToCheck = [updateData.title, updateData.address, updateData.description, updateData.contactInfo, updateData.venueName]
+        .filter(v => v && String(v).trim())
+        .map(v => String(v).trim())
+        .join(' ')
+
+      if (textToCheck) {
+        const checkResult = await cloud.openapi.security.msgSecCheck({
+          openid: openid,
+          scene: 2,
+          version: 2,
+          content: textToCheck
+        })
+        console.log('[updateActivity] 内容检测结果:', JSON.stringify(checkResult))
+
+        if (checkResult.result && checkResult.result.suggest !== 'pass') {
+          console.warn('[updateActivity] 内容违规，已拦截:', checkResult.result)
+          return {
+            success: false,
+            contentRisk: true,
+            message: '内容包含违规信息，请修改后重试'
+          }
+        }
+      }
+    } catch (checkErr) {
+      // HACK: 检测接口异常时放行，避免阻塞正常业务
+      console.error('[updateActivity] 内容检测异常（已放行）:', checkErr)
+    }
+
     // 更新活动
     await db.collection('activities').doc(activityId).update({ data: updateData })
 

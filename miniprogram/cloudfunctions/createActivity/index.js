@@ -62,6 +62,38 @@ exports.main = async (event, context) => {
 
   const now = Date.now()
 
+  // NOTE: 内容安全检测 —— 微信平台强制要求 UGC 场景必须接入
+  // 合并所有文字字段统一检测，减少 API 调用次数
+  try {
+    const textToCheck = [title, address, description, contactInfo, venueName]
+      .filter(v => v && String(v).trim())
+      .map(v => String(v).trim())
+      .join(' ')
+
+    if (textToCheck) {
+      const checkResult = await cloud.openapi.security.msgSecCheck({
+        openid: openid,
+        scene: 2,
+        version: 2,
+        content: textToCheck
+      })
+      console.log('[createActivity] 内容检测结果:', JSON.stringify(checkResult))
+
+      if (checkResult.result && checkResult.result.suggest !== 'pass') {
+        console.warn('[createActivity] 内容违规，已拦截:', checkResult.result)
+        return {
+          success: false,
+          contentRisk: true,
+          message: '内容包含违规信息，请修改后重试'
+        }
+      }
+    }
+  } catch (checkErr) {
+    // HACK: 检测接口异常时放行，避免阻塞正常业务，但记录日志
+    console.error('[createActivity] 内容检测异常（已放行）:', checkErr)
+  }
+
+
   const startTimeStr = String(startTime)
   const endTimeStr = (endTime != null && String(endTime).trim()) ? String(endTime).trim() : startTimeStr
   const doc = {
