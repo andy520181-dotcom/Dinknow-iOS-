@@ -2,9 +2,8 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
-const isFileID = (url) => typeof url === 'string' && url.trim() !== '' && !url.startsWith('http://') && !url.startsWith('https://')
-
-// 为活动列表中的每项附加 currentCount、participants（含头像临时 URL）、host 信息，与 getActivities 一致
+// NOTE: 直接返回 cloud:// 原始 URL，不做 getTempFileURL 转换；
+// 微信 <image> 原生支持 cloud:// 协议，URL 永远稳定，从根本上消除 URL 变化引起的头像闪烁
 async function attachActivityDetails(activities) {
   if (!Array.isArray(activities) || activities.length === 0) return activities
   const result = []
@@ -13,8 +12,6 @@ async function attachActivityDetails(activities) {
     let participants = []
     let hostAvatar = null
     let hostName = null
-    let hostAvatarUrl = null
-    let participantsWithUrl = []
 
     try {
       const countRes = await db.collection('registrations').where({ activityId: a._id, status: 'joined' }).count()
@@ -37,10 +34,10 @@ async function attachActivityDetails(activities) {
             const userMap = {}
             if (usersRes.data) {
               usersRes.data.forEach(u => {
-                userMap[u.openid] = { userId: u.openid, avatarUrl: u.avatarUrl, nickName: u.nickName }
+                userMap[u.openid] = { userId: u.openid, avatarUrl: u.avatarUrl || '', nickName: u.nickName }
               })
             }
-            participants = regRes.data.map(r => userMap[r.userId] || { userId: r.userId })
+            participants = regRes.data.map(r => userMap[r.userId] || { userId: r.userId, avatarUrl: '', nickName: '' })
           }
         }
       }
@@ -57,36 +54,6 @@ async function attachActivityDetails(activities) {
           console.error('getUserActivities host', a._id, e)
         }
       }
-
-      // 与 getActivities 一致：云端将 cloud:// 头像换为临时 https，避免前端闪烁、报名用户头像不显示
-      const avatarFileIDs = []
-      if (hostAvatar && isFileID(hostAvatar)) avatarFileIDs.push(hostAvatar)
-      participants.forEach(p => {
-        if (p && p.avatarUrl && isFileID(p.avatarUrl)) avatarFileIDs.push(p.avatarUrl)
-      })
-      const fileIDToUrl = {}
-      if (avatarFileIDs.length > 0) {
-        try {
-          const tempRes = await cloud.getTempFileURL({ fileList: avatarFileIDs })
-          if (tempRes.fileList && Array.isArray(tempRes.fileList)) {
-            tempRes.fileList.forEach(item => {
-              if (item.tempFileURL) fileIDToUrl[item.fileID] = item.tempFileURL
-            })
-          }
-        } catch (e) {
-          console.error('getUserActivities 获取头像临时链接失败', a._id, e)
-        }
-      }
-      if (hostAvatar && isFileID(hostAvatar)) {
-        hostAvatarUrl = fileIDToUrl[hostAvatar] || hostAvatar
-      } else {
-        hostAvatarUrl = hostAvatar
-      }
-      participantsWithUrl = participants.map(p => {
-        const raw = p.avatarUrl || ''
-        const avatarUrl = (raw && fileIDToUrl[raw]) ? fileIDToUrl[raw] : (raw && !isFileID(raw) ? raw : raw || '')
-        return { userId: p.userId, nickName: p.nickName, avatarUrl: avatarUrl || '' }
-      })
     } catch (e) {
       console.error('getUserActivities details', a._id, e)
     }
@@ -94,9 +61,9 @@ async function attachActivityDetails(activities) {
     result.push({
       ...a,
       currentCount,
-      participants: participantsWithUrl.length > 0 ? participantsWithUrl : participants,
-      hostAvatar: hostAvatarUrl != null ? hostAvatarUrl : hostAvatar,
-      hostName
+      participants,
+      hostAvatar: hostAvatar !== null ? hostAvatar : (a.hostAvatar || null),
+      hostName: hostName || a.hostName || null
     })
   }
   return result

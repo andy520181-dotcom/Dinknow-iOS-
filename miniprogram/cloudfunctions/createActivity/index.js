@@ -107,7 +107,10 @@ exports.main = async (event, context) => {
     longitude: longitude != null ? Number(longitude) : undefined,
     maxParticipants: Math.min(20, Math.max(2, Number(maxParticipants) || 8)),
     fee: Number(fee) || 0,
-    contactInfo: String(contactInfo).trim().slice(0, 50),
+    // NOTE: 手机号/微信号最多 50 字；微信二维码为图片 URL，最多 500 字避免截断后图片失效
+    contactInfo: contactType === 'wechat'
+      ? String(contactInfo).trim().slice(0, 500)
+      : String(contactInfo).trim().slice(0, 50),
     duprLevel: duprLevel ? String(duprLevel).trim() : undefined,
     activityType: activityType != null ? String(activityType).trim() : '不限',
     description: description ? String(description).trim() : undefined,

@@ -13,6 +13,7 @@ exports.main = async (event, context) => {
     // 显式返回完整资料（含地区、球风），供活动详情页点击头像弹层展示
     const profile = {
       openid: raw.openid,
+      phone: raw.phone,
       nickName: raw.nickName,
       avatarUrl: raw.avatarUrl,
       gender: raw.gender,

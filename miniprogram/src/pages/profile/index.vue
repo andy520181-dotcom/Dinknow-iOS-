@@ -66,7 +66,7 @@
               <image
                 v-if="avatarUrl"
                 class="profile-avatar"
-                :src="getCloudImageUrl(avatarUrl)"
+                :src="resolvedAvatarUrl"
                 mode="aspectFill"
               />
               <view v-else class="profile-avatar profile-avatar--placeholder">
@@ -174,10 +174,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { login, getProfile, updateProfile, checkLogin, bindPhone } from '../../services/user'
-import { getCloudImageUrl } from '../../services/cloud'
+import { getCloudImageUrl, clearCloudUrlCache, getTempFileURLs, callCloudFunction } from '../../services/cloud'
 import { getUserActivities } from '../../services/activity'
 import type { User, Activity } from '../../types'
 
@@ -208,6 +208,35 @@ const duprIndex = computed(() => {
 const user = ref<User | null>(null)
 const nickName = ref('')
 const avatarUrl = ref('')
+
+// NOTE: profile 页头像 cloud:// → https:// 缓存映射。
+// uni-app 不支持 cloud:// 直接作为 image src，必须转换。
+const profileCloudUrlMap = ref<Record<string, string>>({})
+
+// NOTE: 经过缓存解析的头像 URL，同一 cloud:// 永远返回同一 https:// 字符串
+const resolvedAvatarUrl = computed(() => {
+  const url = avatarUrl.value
+  if (!url) return ''
+  if (url.startsWith('https://') || url.startsWith('http://')) return url
+  // NOTE: 二次防御：如果缓存中存的是 cloud:// fallback，不返回它
+  const cached = profileCloudUrlMap.value[url]
+  if (cached && (cached.startsWith('https://') || cached.startsWith('http://'))) return cached
+  return ''
+})
+
+// NOTE: avatarUrl 变化时，如果是 cloud://，就解析为 https://
+watch(avatarUrl, async (val: string) => {
+  if (val && val.startsWith('cloud://') && !profileCloudUrlMap.value[val]) {
+    try {
+      const urlMap = await getTempFileURLs([val])
+      // NOTE: 只存储 http(s) URL，过滤 cloud:// fallback
+      const v = urlMap[val]
+      if (v && (v.startsWith('https://') || v.startsWith('http://'))) {
+        profileCloudUrlMap.value = { ...profileCloudUrlMap.value, [val]: v }
+      }
+    } catch {}
+  }
+}, { immediate: true })
 const gender = ref<0 | 1 | 2>(0)
 // NOTE: genderSet 为 true 表示用户已主动设置过性别，未设置时占位文案显示「请选择」
 const genderSet = ref(false)
@@ -222,17 +251,17 @@ const saving = ref(false)
 
 
 
-// NOTE: 在 ref 初始化阶段同步读缓存，预判登录状态，避免已登录用户切换到个人页时闪一下登录页
-const _cachedProfile = uni.getStorageSync('cached_profile')
+// NOTE: 使用独立的 is_logged_in 布尔标记判断登录态，取代 phone/nickName 字段猜测方式。
+// 优势：同步、精确、无歧义；登录成功时写 true，退出时写 false，无需解析业务字段。
+const _isLoggedIn = uni.getStorageSync('is_logged_in') === true
 const _explicitlyLoggedOut = uni.getStorageSync('explicitly_logged_out')
-const _hasCache = !_explicitlyLoggedOut && _cachedProfile &&
-  ((typeof _cachedProfile.phone === 'string' && _cachedProfile.phone.length > 0) ||
-   (typeof _cachedProfile.nickName === 'string' && _cachedProfile.nickName.trim().length > 0))
 
-// NOTE: 有缓存 → 初始就是已登录 + 检查完成；无缓存 → 未登录 + 检查完成（不再白屏等网络）
-const isLoggedIn = ref(!!_hasCache)
-const profileChecking = ref(false)
-// NOTE: 用户是否已勾选同意协议，未勾选时按钮不触发授权
+const isLoggedIn = ref(!!_isLoggedIn)
+// NOTE: profileChecking 仅在「未主动退出 + 未知登录态」时为 true（空白遮罩）。
+// 已有 is_logged_in=true → 立即视为已登录，profileChecking=false，直接渲染个人页。
+// 主动退出或 is_logged_in=false → 直接渲染登录页。
+// 首次安装（is_logged_in 不存在）→ profileChecking=true，等网络验证后揭开遮罩。
+const profileChecking = ref(false) // NOTE: is_logged_in 标记已能同步确定登录态，无需過渡遮罩
 const agreedToTerms = ref(false)
 
 /** 点击登录按钮时若未勾选协议，给出提示 */
@@ -255,10 +284,8 @@ function handleLoginCancel() {
   uni.switchTab({ url: '/pages/index/index' })
 }
 
-// NOTE: 检查登录状态，优先从本地缓存判断，避免云函数网络请求导致的白屏
-// NOTE: 兼容新版（phone）和旧版（nickName）两种登录态
+// NOTE: 检查登录状态：直接读 is_logged_in 标记，同步确定登录态，无需任何网络请求
 async function checkLoginStatus() {
-  // NOTE: setNavigationBarTitle 只在当前页是 profile 时才调用，避免影响其他 tabbar 页
   function setProfileTitle(t: string) {
     const pages = getCurrentPages()
     const cur = pages[pages.length - 1]
@@ -267,54 +294,30 @@ async function checkLoginStatus() {
     }
   }
 
-  // NOTE: 用户主动退出后，写入此标记；读到标记说明用户不希望自动重登录
-  const explicitlyLoggedOut = uni.getStorageSync('explicitly_logged_out')
-  if (explicitlyLoggedOut) {
-    isLoggedIn.value = false
-    profileChecking.value = false
-    setProfileTitle('登录')
-    return
-  }
-
-  const cachedProfile = uni.getStorageSync('cached_profile')
-  const hasPhone = cachedProfile && typeof cachedProfile.phone === 'string' && cachedProfile.phone.length > 0
-  const hasNickName = cachedProfile && typeof cachedProfile.nickName === 'string' && cachedProfile.nickName.trim().length > 0
-
-  if (hasPhone || hasNickName) {
-    // NOTE: 有本地缓存 → 立即显示个人页，不走网络
+  // NOTE: is_logged_in=true → 已登录，直接从缓存填充页面数据并显示个人页
+  if (uni.getStorageSync('is_logged_in') === true) {
+    const cachedProfile = uni.getStorageSync('cached_profile')
     isLoggedIn.value = true
     setProfileTitle('个人中心')
-    profileChecking.value = false
-    user.value = cachedProfile
-    nickName.value = cachedProfile.nickName || ''
-    avatarUrl.value = cachedProfile.avatarUrl || ''
-    if (typeof cachedProfile.gender === 'number' && cachedProfile.gender > 0) {
-      gender.value = cachedProfile.gender as 0 | 1 | 2
-      genderSet.value = true
+    if (cachedProfile) {
+      user.value = cachedProfile
+      nickName.value = cachedProfile.nickName || ''
+      avatarUrl.value = cachedProfile.avatarUrl || ''
+      if (typeof cachedProfile.gender === 'number' && cachedProfile.gender > 0) {
+        gender.value = cachedProfile.gender as 0 | 1 | 2
+        genderSet.value = true
+      }
+      duprLevel.value = cachedProfile.duprLevel || ''
+      region.value = cachedProfile.region || ''
+      signature.value = cachedProfile.signature || ''
     }
-    duprLevel.value = cachedProfile.duprLevel || ''
-    region.value = cachedProfile.region || ''
-    signature.value = cachedProfile.signature || ''
     loadProfileAndActivities()
     return
   }
 
-  // NOTE: 无缓存（首次进入 / 清除数据后）→ 先立即显示登录页，不等网络
+  // NOTE: 其他情况（首次安装 / 清除缓存 / 主动退出）→ 直接显示登录页，无需任何验证
   isLoggedIn.value = false
-  profileChecking.value = false
   setProfileTitle('登录')
-
-  // NOTE: 后台静默检查云函数，如果发现已登录（旧用户清了缓存的情况）再自动切换
-  try {
-    const { ok } = await checkLogin()
-    if (ok) {
-      isLoggedIn.value = true
-      setProfileTitle('个人中心')
-      await loadProfileAndActivities()
-    }
-  } catch {
-    // 网络失败不影响登录页显示
-  }
 }
 
 /**
@@ -337,15 +340,13 @@ async function onGetPhoneNumber(e: any) {
     const res = await bindPhone(code)
     uni.hideLoading()
     if (res?.success) {
-      // NOTE: 主动登录成功，清除退出标记，后续 onShow 可正常自动检查登录态
+      // NOTE: 登录成功写入 is_logged_in=true，下次打开小程序直接走缓存路径，无需任何验证
       uni.removeStorageSync('explicitly_logged_out')
-      // NOTE: 写入最小 cached_profile，确保下次 onShow 直接走缓存判断
+      uni.setStorageSync('is_logged_in', true)
+      // NOTE: 写入最小 cached_profile，确保下次页面初始化能读到 profile 数据
       const minProfile = { phone: res.phone || 'bound', openid: res.openid || '', nickName: '', avatarUrl: '' }
       try { uni.setStorageSync('cached_profile', minProfile) } catch {}
-      // NOTE: 先加载完整 profile 数据并填充字段，再切换到个人页
-      // 这样用户看到个人页时已经是完整的已保存数据，不会闪烁初始态
       await loadProfileAndActivities()
-      // NOTE: 数据准备好后再切换视图，避免先显示空白再跳变
       isLoggedIn.value = true
       uni.setNavigationBarTitle({ title: '个人中心' })
       uni.showToast({ title: '登录成功', icon: 'success' })
@@ -362,19 +363,57 @@ async function onGetPhoneNumber(e: any) {
 }
 
 // NOTE: 微信官方 open-type=chooseAvatar 回调
+// 上传策略：优先走 COS 预签名直传（永久 CDN URL，HTTP 缓存友好）；若 COS 未配置则 fallback 到云开发存储
 async function onChooseAvatar(e: any) {
   const tempPath = e?.detail?.avatarUrl
   if (!tempPath) return
+  uni.showLoading({ title: '上传中...' })
   try {
     // #ifdef MP-WEIXIN
-    const cloudPath = `avatars/${Date.now()}-wechat.jpg`
-    const uploadRes = await (wx as any).cloud.uploadFile({ cloudPath, filePath: tempPath })
-    avatarUrl.value = uploadRes.fileID
+    // NOTE: 构造存储路径：avatars/{openid}_{timestamp}.jpg，openid 作为前缀避免文件名冲突
+    const openid = user.value?.openid || 'unknown'
+    const cosKey = `avatars/${openid}_${Date.now()}.jpg`
+
+    let uploaded = false
+
+    // NOTE: 优先走 COS 预签名直传；独立 try-catch 确保失败时 fallback 不被跳过
+    try {
+      const cosRes: any = await callCloudFunction('uploadToCOS', { fileName: cosKey, fileType: 'image/jpeg' })
+      if (cosRes?.success && cosRes.uploadUrl) {
+        await new Promise<void>((resolve, reject) => {
+          uni.request({
+            url: cosRes.uploadUrl,
+            method: 'PUT',
+            data: uni.getFileSystemManager().readFileSync(tempPath),
+            header: { 'Content-Type': 'image/jpeg' },
+            success: (res) => {
+              if (res.statusCode >= 200 && res.statusCode < 300) resolve()
+              else reject(new Error(`COS PUT 失败: ${res.statusCode}`))
+            },
+            fail: reject
+          })
+        })
+        avatarUrl.value = cosRes.cdnUrl
+        uploaded = true
+      }
+    } catch (cosErr) {
+      console.warn('[onChooseAvatar] COS 上传失败，降级到 wx.cloud:', cosErr)
+    }
+
+    // NOTE: COS 失败或未配置时降级到云开发存储
+    if (!uploaded) {
+      const cloudPath = `avatars/${Date.now()}-wechat.jpg`
+      const uploadRes = await (wx as any).cloud.uploadFile({ cloudPath, filePath: tempPath })
+      avatarUrl.value = uploadRes.fileID
+    }
+
     await saveProfile()
     // #endif
   } catch (err) {
     console.error('头像上传失败:', err)
-    uni.showToast({ title: '上传失败', icon: 'none' })
+    uni.showToast({ title: '上传失败，请重试', icon: 'none' })
+  } finally {
+    uni.hideLoading()
   }
 }
 
@@ -575,8 +614,10 @@ function handleLogout() {
     success: (res) => {
       if (res.confirm) {
         uni.clearStorageSync()
-        // NOTE: clearStorage 之后再写标记，防止被清掉；onShow 检查此标记跳过自动重登录
+        // NOTE: clearStorage 之后再写标记；is_logged_in=false 确保下次打开直接走登录页，不会走网络验证
         uni.setStorageSync('explicitly_logged_out', true)
+        uni.setStorageSync('is_logged_in', false)
+        clearCloudUrlCache()
         isLoggedIn.value = false
         nickName.value = ''
         avatarUrl.value = ''
@@ -837,7 +878,7 @@ onShow(() => {
   align-items: center;
   padding: 32px 16px 24px;
   background: transparent;
-  margin-bottom: $ios-spacing-md;
+  margin-bottom: 12px;
 }
 
 .profile-hero-name {
@@ -1222,7 +1263,7 @@ onShow(() => {
   display: flex;
   gap: 12px;
   padding: 0 16px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .stat-card {

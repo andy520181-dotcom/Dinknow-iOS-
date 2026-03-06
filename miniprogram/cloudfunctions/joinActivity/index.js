@@ -7,12 +7,12 @@ exports.main = async (event, context) => {
   const openid = wxContext.OPENID
   if (!openid) return { success: false, message: '未登录' }
 
-  // 检查用户是否已在个人中心完成登录（users 表中有记录且有昵称）
+  // 检查用户是否已在个人中心完成登录（users 表中有记录即可，不要求昵称）
   let currentUser
   try {
     const userRes = await db.collection('users').where({ openid }).get()
     currentUser = userRes.data && userRes.data[0]
-    if (!currentUser || !currentUser.nickName) {
+    if (!currentUser) {
       return { success: false, message: '请先登录后再报名' }
     }
   } catch (e) {

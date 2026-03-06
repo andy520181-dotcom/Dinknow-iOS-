@@ -1,0 +1,9 @@
+{
+    "name": "uploadToCOS",
+    "version": "1.0.0",
+    "description": "生成 COS 预签名上传 URL，供小程序直传",
+    "main": "index.js",
+    "dependencies": {
+        "cos-nodejs-sdk-v5": "^2.12.0"
+    }
+}

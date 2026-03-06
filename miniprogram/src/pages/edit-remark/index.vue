@@ -19,18 +19,24 @@
 
         <!-- ① 图片区（置顶） -->
         <view class="remark-images">
-          <!-- 已选图片缩略图 -->
-          <view v-for="(img, idx) in images" :key="idx" class="remark-thumb-wrap">
-            <image class="remark-thumb" :src="img" mode="aspectFill" />
-            <view class="remark-thumb-del" @tap.stop="removeImage(idx)">
-              <text class="remark-thumb-del-icon">×</text>
-            </view>
-          </view>
-
-          <!-- 添加图片按钮（最多6张，参考图：大方块+相机图标+文字） -->
+          <!-- 添加图片按钮固定在第 1 位，最多 6 张时隐藏 -->
           <view v-if="images.length < MAX_IMAGES" class="remark-add-btn" @tap="pickImage">
             <image class="remark-add-camera-img" src="/static/icons/xiangji.png" mode="aspectFit" />
             <text class="remark-add-label">添加图片</text>
+          </view>
+
+          <!-- 已选图片缩略图依次跟在按钮后 -->
+          <view v-for="(img, idx) in images" :key="idx" class="remark-thumb-wrap">
+            <!-- NOTE: 点击缩略图全屏预览，支持滑动翻页；@tap.stop 防止与删除按钮事件冲突 -->
+            <image
+              class="remark-thumb"
+              :src="img"
+              mode="aspectFill"
+              @tap.stop="previewImg(img)"
+            />
+            <view class="remark-thumb-del" @tap.stop="removeImage(idx)">
+              <text class="remark-thumb-del-icon">×</text>
+            </view>
           </view>
         </view>
 
@@ -82,6 +88,11 @@ function pickImage() {
 
 function removeImage(idx: number) {
   images.value = images.value.filter((_, i) => i !== idx)
+}
+
+// NOTE: 全屏预览图片，支持左右滑动查看所有图片
+function previewImg(current: string) {
+  uni.previewImage({ urls: images.value, current })
 }
 
 function onDone() {

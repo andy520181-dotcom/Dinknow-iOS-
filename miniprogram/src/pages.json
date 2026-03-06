@@ -21,7 +21,7 @@
     {
       "path": "pages/profile/index",
       "style": {
-        "navigationBarTitleText": "登录",
+        "navigationBarTitleText": "",
         "navigationBarBackgroundColor": "#F5F5F5",
         "navigationBarTextStyle": "black",
         "backgroundColor": "#F5F5F5"
@@ -57,6 +57,18 @@
       "path": "pages/edit-remark/index",
       "style": {
         "navigationBarTitleText": "备注"
+      }
+    },
+    {
+      "path": "pages/edit-fee/index",
+      "style": {
+        "navigationBarTitleText": "费用"
+      }
+    },
+    {
+      "path": "pages/edit-contact/index",
+      "style": {
+        "navigationBarTitleText": "联系方式"
       }
     },
     {

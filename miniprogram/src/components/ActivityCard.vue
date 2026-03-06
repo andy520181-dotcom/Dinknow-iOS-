@@ -5,15 +5,14 @@
     <view class="card-header">
       <!-- 上段：头像 60px -->
       <view class="host-avatar-wrap">
+        <!-- NOTE: 始终渲染 image，容器灰色骨架为 placeholder，@load 后淡入，消除头像突然弹出的闪烁 -->
         <image
-          v-if="hostAvatarUrl"
-          :src="hostAvatarUrl"
+          :src="hostAvatarUrl || ''"
           class="host-avatar-img"
+          :class="{ 'avatar-img--loaded': loadedAvatars.has(hostAvatarUrl) }"
           mode="aspectFill"
+          @load="onAvatarLoaded(hostAvatarUrl)"
         />
-        <view v-else class="host-avatar-placeholder">
-          <text class="host-avatar-icon">👤</text>
-        </view>
       </view>
 
       <!-- 活动信息块（右）：标题 / 时间地点 / 标签 -->
@@ -65,15 +64,14 @@
           class="participant-item"
         >
           <view class="participant-avatar-wrap">
+            <!-- NOTE: 与发起人头像同策略：始终渲染，灰色骨架占位，@load 后淡入 -->
             <image
-              v-if="p.avatarUrl && String(p.avatarUrl).trim()"
-              :src="String(p.avatarUrl)"
+              :src="p.avatarUrl && String(p.avatarUrl).trim() ? String(p.avatarUrl) : ''"
               class="participant-avatar-img"
+              :class="{ 'avatar-img--loaded': loadedAvatars.has(p.avatarUrl) }"
               mode="aspectFill"
+              @load="onAvatarLoaded(p.avatarUrl)"
             />
-            <view v-else class="participant-avatar-placeholder">
-              <text class="participant-avatar-icon">👤</text>
-            </view>
           </view>
           <text class="participant-nickname">{{ p.nickName || '匹克球友' }}</text>
         </view>
@@ -126,9 +124,9 @@
 <script setup lang="ts">
 import type { Activity } from '../types'
 import { isActivityEnded, isActivityInProgress, parseActivityDate } from '../utils/activity'
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { checkLogin } from '../services/user'
-import { getCloudImageUrl, getTempFileURLs } from '../services/cloud'
+// NOTE: 不再需要 getTempFileURLs，<image> 原生支持 cloud:// 协议，直接传入即可
 
 const props = withDefaults(
   defineProps<{
@@ -308,68 +306,52 @@ const joinButtonText = computed(() => {
   return '立即报名'
 })
 
-// ── 头像 URL 管理 ─────────────────────────────────────
-/** cloud:// → 临时 URL 缓存映射，避免刷新时闪烁 */
-const avatarUrlMap = ref<Record<string, string>>({})
+// ── 头像加载状态跟踪（用于淡入动画）─────────────────────
+/**
+ * NOTE: 记录已完成加载的头像 URL。
+ * 配合 CSS opacity 过渡实现「灰色骨架 → 图片淡入」效果，
+ * 消除 v-if 切换导致的头像突然弹出（pop-in）问题。
+ */
+const loadedAvatars = ref(new Set<string | null | undefined>())
 
-async function loadAvatarUrls() {
-  const isCloudId = (id: string) => typeof id === 'string' && id.startsWith('cloud://')
-  const fileIDs: string[] = []
-  const map = avatarUrlMap.value
-
-  if (props.activity?.hostAvatar && isCloudId(props.activity.hostAvatar) && !map[props.activity.hostAvatar]) {
-    fileIDs.push(props.activity.hostAvatar)
-  }
-  if (props.activity?.participants) {
-    props.activity.participants.forEach((p: { avatarUrl?: string }) => {
-      if (p?.avatarUrl && isCloudId(p.avatarUrl) && !map[p.avatarUrl]) {
-        fileIDs.push(p.avatarUrl)
-      }
-    })
-  }
-
-  if (fileIDs.length === 0) return
-  try {
-    const urlMap = await getTempFileURLs(fileIDs)
-    const next = { ...avatarUrlMap.value }
-    Object.entries(urlMap).forEach(([fid, url]) => {
-      if (!next[fid] || !String(next[fid]).startsWith('http')) next[fid] = url
-    })
-    avatarUrlMap.value = next
-  } catch (e) {
-    console.error('[ActivityCard] 加载头像临时 URL 失败:', e)
-  }
+function onAvatarLoaded(url: string | null | undefined) {
+  if (!url) return
+  loadedAvatars.value = new Set(loadedAvatars.value).add(url)
 }
 
+
+
+
+
+/**
+ * NOTE: 直接使用原始 URL（cloud:// 或 https://）传给 <image>。
+ * 微信 <image> 组件原生支持 cloud:// 协议，不需要前端调用
+ * wx.cloud.getTempFileURL 转换。
+ * 原来使用 getTempFileURLs 的方案有致命缺陷：该 API 只能获取
+ * 当前登录用户自己文件的临时 URL，无法获取他人上传的文件 URL，
+ * 导致别人发起活动的头像无法显示。
+ */
 function getDisplayAvatarUrl(url: string | null | undefined): string {
   if (!url || typeof url !== 'string') return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) return url
-  return avatarUrlMap.value[url] || getCloudImageUrl(url) || url
+  // cloud:// 和 http(s):// 均可直接传给 <image>，原样返回
+  return url
 }
 
-watch(
-  () => props.activity,
-  async (newActivity) => {
-    if (newActivity?._id) await loadAvatarUrls()
-  },
-  { immediate: true }
-)
-
-// ── 发起人头像 URL ────────────────────────────────────
+// NOTE: 直接使用 cloud:// 或 https:// 原始 URL，<image> 原生支持，永不变化，无闪烁
 const hostAvatarUrl = computed(() => getDisplayAvatarUrl(props.activity?.hostAvatar))
 
 // ── 报名用户头像列表（不含发起人） ───────────────────────
 // NOTE: 5列×3行最多展示15个，超出显示+N占位
 const MAX_PARTICIPANT_DISPLAY = 15
 
-const participantList = computed(() => {
-  const list = (props.activity?.participants || []).map((p: { userId?: string; avatarUrl?: string; nickName?: string }) => ({
+const participantList = computed(() =>
+  (props.activity?.participants || []).map((p: { userId?: string; avatarUrl?: string; nickName?: string }) => ({
     userId: p?.userId || '',
-    avatarUrl: p?.avatarUrl ? getDisplayAvatarUrl(p.avatarUrl) : '',
+    // NOTE: 直接使用原始 URL，无需转换
+    avatarUrl: getDisplayAvatarUrl(p?.avatarUrl || ''),
     nickName: p?.nickName || ''
   }))
-  return list
-})
+)
 
 const displayedParticipants = computed(() => participantList.value.slice(0, MAX_PARTICIPANT_DISPLAY))
 
@@ -395,7 +377,7 @@ async function handleJoinClick() {
     uni.showToast({ title: '请先登录后再报名参加活动', icon: 'none', duration: 2500 })
     setTimeout(() => {
       uni.switchTab({ url: '/pages/profile/index' })
-    }, 500)
+    }, 1200)
     return
   }
   const activities = uni.getStorageSync('activity_detail_cache') || []
@@ -420,7 +402,6 @@ async function handleJoinClick() {
   background: $ios-bg-primary;
   border-radius: $ios-radius-lg;
   padding: $ios-spacing-lg;
-  margin-bottom: $ios-spacing-md;
   box-shadow: $ios-shadow-md;
   transition: all 0.2s ease;
 
@@ -475,9 +456,10 @@ async function handleJoinClick() {
   height: 60px;
   flex-shrink: 0;
   border-radius: 50%;
-  // NOTE: hidden 使底部「发起人」条随头像圆形裁切，与详情页保持一致
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  // NOTE: 灰色骨架背景，头像未加载完成时显示此颜色占位，无需额外 placeholder 元素
+  background: #E5E5EA;
 }
 
 // NOTE: 昵称 + 发布时间强制同行，小程序不支持 inline-flex 故用 flex-direction:row
@@ -528,20 +510,13 @@ async function handleJoinClick() {
   height: 60px;
   border-radius: 50%;
   display: block;
-}
+  // NOTE: 默认透明，@load 触发 --loaded 后淡入，容器玗色骨架作占位，消除 pop-in 突然弹出
+  opacity: 0;
+  transition: opacity 0.25s ease;
 
-.host-avatar-placeholder {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: $ios-bg-tertiary;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.host-avatar-icon {
-  font-size: 24px;
+  &.avatar-img--loaded {
+    opacity: 1;
+  }
 }
 
 // Host 徽标 — 低调展示，不突出
@@ -843,6 +818,8 @@ async function handleJoinClick() {
   flex-shrink: 0;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  // NOTE: 灰色骨架背景，与发起人头像一致
+  background: #E5E5EA;
 }
 
 .participant-avatar-img {
@@ -850,21 +827,15 @@ async function handleJoinClick() {
   height: 50px;
   border-radius: 50%;
   display: block;
+  // NOTE: 默认透明，@load 后淡入，与发起人头像一致
+  opacity: 0;
+  transition: opacity 0.25s ease;
+
+  &.avatar-img--loaded {
+    opacity: 1;
+  }
 }
 
-.participant-avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  background: $ios-bg-tertiary;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.participant-avatar-icon {
-  font-size: 16px;
-}
 
 // NOTE: 浅色虚线空心圆，语义清晰的「空位可加入」占位符
 .participant-add-slot {

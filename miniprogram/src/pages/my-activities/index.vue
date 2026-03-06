@@ -33,7 +33,7 @@ import { onLoad, onShow, onHide, onPullDownRefresh } from '@dcloudio/uni-app'
 import { getUserActivities, getActivityDetail, deleteActivity, leaveActivity } from '../../services/activity'
 import type { Activity } from '../../types'
 import { isActivityEnded, isActivityInProgress } from '../../utils/activity'
-import { getCurrentUserFromCache, mergeCurrentUserAvatar, resolveActivityAvatarUrls } from '../../utils/avatarSync'
+import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
 import ActivityCard from '../../components/ActivityCard.vue'
 
 const type = ref<'joined' | 'created'>('joined')
@@ -71,7 +71,8 @@ onPullDownRefresh(async () => {
 })
 
 /** 与广场页一致：定时静默刷新报名数据，使活动卡实时同步最新报名人数与头像 */
-const LIST_REFRESH_INTERVAL_MS = 2000
+// NOTE: 调低刷新频率（2s → 10s），减少不必要的 getTempFileURLs 调用，降低头像闪烁概率
+const LIST_REFRESH_INTERVAL_MS = 10000
 let listRefreshTimer: ReturnType<typeof setInterval> | null = null
 
 function clearListRefreshTimer() {
@@ -101,19 +102,16 @@ async function loadList(silent = false) {
           const old = prevList.find((a: Activity) => a._id === act._id)
           if (!old) return act
           const out = { ...act }
-          const keepHost =
-            old.hostAvatar &&
-            (String(old.hostAvatar).startsWith('http') || String(old.hostAvatar).startsWith('cloud://'))
-          out.hostAvatar = keepHost ? old.hostAvatar : (act.hostAvatar ?? old.hostAvatar)
+          // NOTE: 新头像有效就用新的，允许头像变更生效；无效时保留旧的防闪烁
+          const isValidUrl = (v: any) => v && (String(v).startsWith('http') || String(v).startsWith('cloud://'))
+          out.hostAvatar = isValidUrl(act.hostAvatar) ? act.hostAvatar : (old.hostAvatar || act.hostAvatar)
           if (Array.isArray(act.participants) && act.participants.length > 0) {
             const oldParts = Array.isArray(old.participants) ? old.participants : []
             out.participants = act.participants.map(
               (p: { userId?: string; avatarUrl?: string; nickName?: string }) => {
                 const op = oldParts.find((x: { userId?: string }) => x.userId === p.userId)
-                const keepUrl =
-                  op?.avatarUrl &&
-                  (String(op.avatarUrl).startsWith('http') || String(op.avatarUrl).startsWith('cloud://'))
-                return { ...p, avatarUrl: op && keepUrl ? op.avatarUrl : p.avatarUrl ?? op?.avatarUrl }
+                // NOTE: 新头像有效就用新的
+                return { ...p, userId: p.userId || '', avatarUrl: isValidUrl(p.avatarUrl) ? p.avatarUrl : (op?.avatarUrl || p.avatarUrl) }
               }
             )
           } else if (Array.isArray(old.participants) && old.participants.length > 0) {
@@ -152,7 +150,7 @@ async function loadList(silent = false) {
     }
 
     // 先解析 cloud:// 为 https，再合并当前用户头像（merge 仅用 http 覆盖，避免闪烁）
-    data = await resolveActivityAvatarUrls(data)
+    // NOTE: cloud:// URL 直接稳定，无需下载临时 URL，删除 resolveActivityAvatarUrls 调用
     const currentUser = getCurrentUserFromCache()
     if (currentUser) {
       data = data.map((act: Activity) => mergeCurrentUserAvatar(act, currentUser))
@@ -161,18 +159,18 @@ async function loadList(silent = false) {
     // 规范化：保证每条活动必有 participants 数组且为新引用，方便卡片响应式更新
     const normalized = data.map((act: Activity) => ({
       ...act,
-      participants: Array.isArray(act.participants) ? act.participants.map((p: { userId?: string; avatarUrl?: string; nickName?: string }) => ({ ...p })) : []
+      participants: Array.isArray(act.participants) ? act.participants.map((p: { userId?: string; avatarUrl?: string; nickName?: string }) => ({ ...p, userId: p.userId || '' })) : []
     }))
 
     if (silent && prevList.length === normalized.length) {
       const nextList = normalized.map((act: Activity) => {
         const old = prevList.find((a: Activity) => a._id === act._id)
         if (!old) return act
-        const oldHasAvatar = !!(old.hostAvatar && String(old.hostAvatar).startsWith('http'))
-        const newHasAvatar = !!(act.hostAvatar && String(act.hostAvatar).startsWith('http'))
+        const isValidUrl3 = (v: any) => v && (String(v).startsWith('http') || String(v).startsWith('cloud://'))
         if (
-          oldHasAvatar &&
-          newHasAvatar &&
+          isValidUrl3(old.hostAvatar) &&
+          isValidUrl3(act.hostAvatar) &&
+          old.hostAvatar === act.hostAvatar &&
           old.currentCount === act.currentCount &&
           (old.participants?.length ?? 0) === (act.participants?.length ?? 0)
         ) {
@@ -180,15 +178,29 @@ async function loadList(silent = false) {
         }
         return act
       })
-      list.value = nextList
+      list.value = sortActivities(nextList)
     } else {
-      list.value = normalized
+      list.value = sortActivities(normalized)
     }
   } catch (e) {
     if (!silent) list.value = []
   } finally {
     if (!silent) loading.value = false
   }
+}
+
+/**
+ * NOTE: 排序规则：进行中（未结束）的活动按 createdAt 倒序排在前面，
+ * 已结束的活动按 createdAt 倒序排在后面，直观区分待参与和历史记录。
+ */
+function sortActivities(acts: Activity[]): Activity[] {
+  const active = acts.filter(a => !isActivityEnded(a)).sort(
+    (a, b) => ((b as any).createdAt ?? 0) - ((a as any).createdAt ?? 0)
+  )
+  const ended = acts.filter(a => isActivityEnded(a)).sort(
+    (a, b) => ((b as any).createdAt ?? 0) - ((a as any).createdAt ?? 0)
+  )
+  return [...active, ...ended]
 }
 
 function handleAvatarUpdated() {
@@ -347,7 +359,8 @@ async function handleLeaveActivity(activity: Activity) {
 .my-activities-page {
   min-height: 100vh;
   background: $ios-bg-secondary;
-  padding: $ios-spacing-md;
+  // NOTE: 左右内边距与广场页统一用 $ios-spacing-lg，顶部 12px，底部额外留 tab bar 高度
+  padding: 12px $ios-spacing-lg;
   padding-bottom: calc(40px + env(safe-area-inset-bottom));
 }
 
@@ -364,12 +377,14 @@ async function handleLeaveActivity(activity: Activity) {
 }
 
 .activity-list {
+  // NOTE: flex column + gap 统一控制卡片间距，不依赖卡片自身 margin
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding-bottom: $ios-spacing-xxl;
 }
 
 .activity-card-wrap {
-  display: block;
-
   // NOTE: 已过期活动卡片用极浅灰色背景，直观区分进行中和已结束的活动
   &--ended :deep(.activity-card) {
     background: #eaeaef;

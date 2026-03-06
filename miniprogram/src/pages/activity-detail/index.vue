@@ -12,9 +12,9 @@
             <view class="detail-value detail-value--initiator">
               <!-- NOTE: 始终显示占位灰圆，图片加载完成后淡入，避免 src 变化导致图片闪一下 -->
               <view class="detail-initiator-avatar-wrap">
+                <!-- NOTE: 始终渲染，容器灰色骨架作占位，@load 后淡入，去掉 v-if 防止节点从无到有弹出 -->
                 <image
-                  v-if="activity.hostAvatar"
-                  :src="getCloudImageUrl(activity.hostAvatar)"
+                  :src="resolveCloudUrl(activity.hostAvatar) || ''"
                   class="detail-initiator-avatar"
                   :class="{ 'detail-initiator-avatar--loaded': hostAvatarLoaded }"
                   mode="aspectFill"
@@ -59,10 +59,21 @@
           </view>
           <view class="detail-row">
             <text class="detail-label">联系方式</text>
-            <!-- NOTE: 报名后显示联系方式，并根据 contactType 加前缀；兼容旧数据无 contactType 时用纯数字判断 -->
+            <!-- NOTE: 报名后显示联系方式：手机显示号码，微信显示二维码图片（contactInfo 为 URL） -->
             <view v-if="hasJoined && activity.contactInfo" class="detail-contact-row">
-              <text class="detail-contact-type">{{ activity.contactType === 'wechat' ? '微信' : '手机' }}</text>
-              <text class="detail-value">{{ activity.contactInfo }}</text>
+              <text class="detail-contact-type">{{ activity.contactType === 'wechat' ? '微信二维码' : '手机' }}</text>
+              <!-- 手机号：直接展示文字 -->
+              <text v-if="activity.contactType !== 'wechat'" class="detail-value">{{ activity.contactInfo }}</text>
+              <!-- 微信二维码：展示图片，支持长按保存，淡入效果 -->
+              <image
+                v-else
+                class="detail-wechat-qr"
+                :class="{ 'detail-wechat-qr--loaded': wechatQrImageLoaded }"
+                :src="activity.contactInfo"
+                mode="aspectFit"
+                show-menu-by-longpress
+                @load="wechatQrImageLoaded = true"
+              />
             </view>
             <text v-else class="detail-value detail-value--muted">报名成功后可见</text>
           </view>
@@ -77,7 +88,13 @@
                   class="remark-img-wrap"
                   @tap="previewRemarkImage(idx)"
                 >
-                  <image :src="img" class="remark-img" mode="widthFix" />
+                  <image
+                    :src="img"
+                    class="remark-img"
+                    :class="{ 'remark-img--loaded': loadedRemarkImages.has(img) }"
+                    mode="widthFix"
+                    @load="loadedRemarkImages = new Set(loadedRemarkImages).add(img)"
+                  />
                 </view>
               </view>
             </view>
@@ -98,14 +115,15 @@
             @tap="handleViewProfile(item.userId)"
           >
             <view class="participant-avatar-container">
-              <!-- NOTE: 占位容器始终可见，图片通过 CSS fadeIn 自动淡入，避免 src 变化闪烁 -->
+              <!-- NOTE: key 绑定 userId 而非 avatarUrl，避免 URL 变化时节点销毁重建导致闪烁 -->
+              <!-- NOTE: 与发起人头像同策略：灰色容器占位，@load 后淡入，防止头像突然弹出 -->
               <view class="participant-avatar-wrap-large">
                 <image
-                  v-if="item.avatarUrl"
-                  :key="item.avatarUrl"
-                  :src="getCloudImageUrl(item.avatarUrl)"
+                  :src="item.avatarUrl ? resolveCloudUrl(item.avatarUrl) : ''"
                   class="participant-avatar-inner"
+                  :class="{ 'participant-avatar-inner--loaded': loadedParticipantAvatars.has(item.userId) }"
                   mode="aspectFill"
+                  @load="loadedParticipantAvatars = new Set(loadedParticipantAvatars).add(item.userId)"
                 />
               </view>
             </view>
@@ -166,7 +184,7 @@
               <!-- NOTE: 点击头像调起微信内置大图预览 -->
               <image
                 v-if="profileUser.avatarUrl"
-                :src="getCloudImageUrl(profileUser.avatarUrl)"
+                :src="resolveCloudUrl(profileUser.avatarUrl)"
                 class="profile-modal-avatar"
                 mode="aspectFill"
                 @tap="previewProfileAvatar"
@@ -210,13 +228,15 @@ import { onLoad, onShow, onHide, onShareAppMessage, onShareTimeline } from '@dcl
 import type { Activity, User } from '../../types'
 import { getActivityDetail, joinActivity } from '../../services/activity'
 import { getProfile, checkLogin } from '../../services/user'
-import { getCloudImageUrl } from '../../services/cloud'
+import { getCloudImageUrl, getTempFileURLs } from '../../services/cloud'
 import { isActivityEnded, parseActivityDate } from '../../utils/activity'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
 
 const activityId = ref<string>('')
 const activity = ref<Activity | null>(null)
 const loading = ref(true)
+// NOTE: 微信二维码图片加载完成标志，控制淡入动画
+const wechatQrImageLoaded = ref(false)
 const joining = ref(false)
 // NOTE: 报名前必须勾选免责声明，与发起活动页逻辑一致
 const disclaimerAccepted = ref(false)
@@ -224,11 +244,59 @@ const disclaimerAccepted = ref(false)
 const isPreviewingImage = ref(false)
 // NOTE: 发起人头像加载完成标记，用于触发淡入动画
 const hostAvatarLoaded = ref(false)
-// NOTE: 监听 URL 变化并重置加载标记，避免 cloud URL 替换缓存 URL 时图片重载期间闪烁
+// NOTE: 备注图片加载完成记录，配合 CSS opacity 0→1 淡入，防止备注图突然弹出
+const loadedRemarkImages = ref(new Set<string>())
+// NOTE: 参与者头像加载完成记录，以 userId 为 key，防止头像突然弹出
+const loadedParticipantAvatars = ref(new Set<string>())
+
+// NOTE: 详情页 cloud:// → https:// 缓存映射。
+// uni-app 不支持 cloud:// 直接作为 image src，必须转换。
+// 全局缓存保证同一 fileID 永远返回同一 URL 字符串→ image src 不变 → 不闪烁
+const detailCloudUrlMap = ref<Record<string, string>>({})
+
+function resolveCloudUrl(url: string | null | undefined): string {
+  if (!url) return ''
+  if (url.startsWith('https://') || url.startsWith('http://')) return url
+  // NOTE: 二次防御：如果缓存中存的是 cloud:// fallback，不返回它
+  const cached = detailCloudUrlMap.value[url]
+  if (cached && (cached.startsWith('https://') || cached.startsWith('http://'))) return cached
+  return ''
+}
+
+async function resolveDetailCloudUrls() {
+  const act = activity.value
+  if (!act) return
+  const fileIDs: string[] = []
+  const isCloud = (u: string) => typeof u === 'string' && u.startsWith('cloud://')
+  if (act.hostAvatar && isCloud(act.hostAvatar)) fileIDs.push(act.hostAvatar)
+  ;(act?.participants || []).forEach((p: { avatarUrl?: string }) => {
+    if (p?.avatarUrl && isCloud(p.avatarUrl)) fileIDs.push(p.avatarUrl)
+  })
+  ;((act as any)?.images || []).forEach((img: string) => {
+    if (img && isCloud(img)) fileIDs.push(img)
+  })
+  const uniq = [...new Set(fileIDs)]
+  if (uniq.length === 0) return
+  try {
+    const urlMap = await getTempFileURLs(uniq)
+    // NOTE: 只存储真正 http(s) URL；tempFileURL 失败时 fallback 是 cloud://，过滤掉防止污染缓存
+    const validMap: Record<string, string> = {}
+    for (const [k, v] of Object.entries(urlMap)) {
+      if (v && (v.startsWith('https://') || v.startsWith('http://'))) validMap[k] = v
+    }
+    detailCloudUrlMap.value = { ...detailCloudUrlMap.value, ...validMap }
+  } catch (e) {
+    console.error('[ActivityDetail] cloud URL 解析失败:', e)
+  }
+}
+// NOTE: 只在头像从"无稳定 URL"变为"有稳定 http URL"时重置加载态（首次获得图片）
+// http → http 的切换意味着同一图片的临时 URL 刷新，内容不变，不重置避免闪烁
 watch(
   () => activity.value?.hostAvatar,
   (newUrl, oldUrl) => {
-    if (newUrl && newUrl !== oldUrl) {
+    const oldIsHttp = oldUrl && String(oldUrl).startsWith('http')
+    const newIsHttp = newUrl && String(newUrl).startsWith('http')
+    if (!oldIsHttp && newIsHttp) {
       hostAvatarLoaded.value = false
     }
   }
@@ -486,20 +554,18 @@ async function silentSyncParticipants() {
       await new Promise(resolve => setTimeout(resolve, 800))
     }
 
-    // NOTE: 保护发起人头像——与 loadActivityDetail 一致的 keepOld 逻辑
-    // 避免云函数 getTempFileURL 偶尔失败返回 cloud:// 覆盖已有 https://
+    // NOTE: 新头像有效（API 最新值）就用新的，允许变更生效；无效时保留旧的防闪烁
+    const isValidUrl = (v: any) => v && (String(v).startsWith('http') || String(v).startsWith('cloud://'))
     const prevHostAvatar = activity.value.hostAvatar
     const newHostAvatar = detail.hostAvatar
-    const keepHostAvatar = prevHostAvatar && String(prevHostAvatar).startsWith('http')
-    const stableHostAvatar = keepHostAvatar ? prevHostAvatar : (newHostAvatar || prevHostAvatar || '')
+    const stableHostAvatar = isValidUrl(newHostAvatar) ? newHostAvatar : (prevHostAvatar || newHostAvatar || '')
 
     // 更新为最新参与者列表
     const mergedParticipants = (detail.participants || []).map((p: Record<string, unknown>) => {
       const op = oldParticipants.find((x: { userId?: string }) => x.userId === p.userId)
       const oldUrl = op?.avatarUrl
       const newUrl = p.avatarUrl as string
-      const keepOld = oldUrl && String(oldUrl).startsWith('http')
-      return { ...p, avatarUrl: keepOld ? oldUrl : (newUrl || oldUrl || '') }
+      return { ...p, avatarUrl: isValidUrl(newUrl) ? newUrl : (oldUrl || newUrl || '') }
     })
     activity.value = {
       ...activity.value,
@@ -536,20 +602,17 @@ onShow(async () => {
     startPolling()
     return
   }
-  // 页面显示时刷新活动详情（可能用户从其他页面返回，需要更新报名状态）
   if (activityId.value) {
-    // loadActivityDetail 内部会先调用 loadCurrentUser，确保数据顺序正确
-    await loadActivityDetail()
-  }
-  
-  // 检查存储标记，确保从其他页面返回时也能刷新
-  if (uni.getStorageSync('activity_just_joined') || uni.getStorageSync('activity_just_left') || uni.getStorageSync('activity_just_updated')) {
-    if (activityId.value) {
-      await loadActivityDetail()
-    }
+    // NOTE: 若有"刚刚操作"标记则强制刷新（跳过缓存），否则走正常缓存路径；
+    // 两种情况合并为单次调用，避免双重加载导致备注图片 URL 变化闪烁。
+    const needForce = !!(
+      uni.getStorageSync('activity_just_joined') ||
+      uni.getStorageSync('activity_just_left') ||
+      uni.getStorageSync('activity_just_updated')
+    )
+    await loadActivityDetail(needForce)
   }
 
-  // 启动定时轮询，每 10 秒自动刷新参与者列表
   startPolling()
 })
 
@@ -583,7 +646,7 @@ async function loadActivityDetail(forceRefresh = false) {
   // 先加载当前用户信息，确保能正确判断是否已报名
   await loadCurrentUser()
 
-  // 1. 非强制刷新时优先用缓存；有缓存且含头像时才先展示（避免先占位再被云数据替换导致头像闪烁）
+  // 1. 非强制刷新时优先用缓存；有缓存且含头像时才先展示
   if (!forceRefresh) {
     const activities = uni.getStorageSync('activity_detail_cache')
     if (activities && Array.isArray(activities)) {
@@ -592,6 +655,8 @@ async function loadActivityDetail(forceRefresh = false) {
         const currentUserCache = getCurrentUserFromCache()
         activity.value = currentUserCache ? mergeCurrentUserAvatar(found, currentUserCache) : found
         loading.value = false
+        // NOTE: 立即解析缓存中的 cloud:// URL，避免 uni-app 不支持此协议导致图片加载失败
+        resolveDetailCloudUrls()
       }
     }
   }
@@ -602,48 +667,25 @@ async function loadActivityDetail(forceRefresh = false) {
     if (detail) {
       const prev = activity.value
       const detailAny = detail as Record<string, unknown>
-      // NOTE: 始终使用云函数返回的最新 URL。
-      // 旧逻辑 keepHostAvatar 会保留旧 temp URL（可能已过期），导致头像失效。
+      // NOTE: 新头像有效就用新的，允许头像变更生效
+      const isValidUrl2 = (v: any) => v && (String(v).startsWith('http') || String(v).startsWith('cloud://'))
       const prevHostAvatar = prev?.hostAvatar
       const newHostAvatar = detail.hostAvatar
-      // NOTE: 与 participants 头像同逻辑：
-      // 缓存中已有效 http URL 则保留（URL 字符串稳定，不触发 image 重载），
-      // 缓存无 http URL（首次/过期）才用云函数新 URL，确保始终有图可显示
-      const keepHostAvatar = prevHostAvatar && String(prevHostAvatar).startsWith('http')
       const merged = {
         ...detail,
-        hostAvatar: keepHostAvatar ? prevHostAvatar : (newHostAvatar || prevHostAvatar || '')
+        hostAvatar: isValidUrl2(newHostAvatar) ? newHostAvatar : (prevHostAvatar || newHostAvatar || '')
       } as Record<string, unknown>
-      // NOTE: 保留缓存中已有的 images URL，避免 URL 引用变化触发图片重载闪烁
-      // 与头像防闪烁策略一致：只有缓存 URL 已是 http(s) 时才保留，
-      // cloud:// URL 不能直接显示，必须使用云函数返回的新 temp URL
-      const prevImages = (prev as any)?.images
-      const newImages = (detail as any)?.images
-      if (
-        prevImages && Array.isArray(prevImages) && prevImages.length > 0 &&
-        newImages && Array.isArray(newImages) && newImages.length === prevImages.length &&
-        prevImages.every((url: string) => typeof url === 'string' && url.startsWith('http'))
-      ) {
-        // 缓存中图片已是稳定 https URL，保留旧引用避免重载闪烁
-        merged.images = prevImages
-      }
+      // NOTE: 云函数现在直接返回 cloud:// 原始 URL，永不变化，直接使用无需对比旧新 URL
+      merged.images = (detail as any)?.images
       merged.hostRegion = detailAny.hostRegion
       merged.hostSignature = detailAny.hostSignature
       const oldParticipants = prev?.participants || []
-      merged.participants = (detail.participants || []).map((p: Record<string, unknown>) => {
-        const op = oldParticipants.find((x: { userId?: string }) => x.userId === p.userId)
-        // NOTE: 与 hostAvatar 同理，优先保留缓存中已有的 http(s) URL，
-        // 避免 URL 字符串变化（如 cloud:// → https://）触发图片重载闪烁
-        const oldUrl = op?.avatarUrl
-        const newUrl = p.avatarUrl as string
-        const keepOld = oldUrl && String(oldUrl).startsWith('http')
-        return {
-          ...p,
-          avatarUrl: keepOld ? oldUrl : (newUrl || oldUrl || ''),
-          region: p.region,
-          signature: p.signature
-        }
-      })
+      // NOTE: 直接使用云函数返回的 participants，cloud:// 永远稳定，无需 keep-old
+      merged.participants = (detail.participants || []).map((p: Record<string, unknown>) => ({
+        ...p,
+        region: p.region,
+        signature: p.signature
+      }))
       // 报名后立即刷新时，云端可能尚未写入新报名记录，导致 detail.participants 不含当前用户；保留乐观更新中的当前用户，避免 hasJoined 变 false 从而看不到联系方式
       const currentOpenid = getCurrentOpenid()
       if (currentOpenid) {
@@ -660,6 +702,8 @@ async function loadActivityDetail(forceRefresh = false) {
       ;(finalMerged as Record<string, unknown>).hostRegion = merged.hostRegion
       ;(finalMerged as Record<string, unknown>).hostSignature = merged.hostSignature
       activity.value = finalMerged as Activity
+      // NOTE: 解析最新数据中的 cloud:// URL， uni-app 不支持此协议直接作为 image src
+      resolveDetailCloudUrls()
       // 更新缓存，便于从其他页返回时一致（缓存用合并后的数据，避免下次进入仍用旧 URL）
       const activities = uni.getStorageSync('activity_detail_cache') || []
       const idx = activities.findIndex((a: Activity) => a._id === activityId.value)
@@ -877,9 +921,10 @@ function handleJoinTap() {
 async function handleJoin() {
   if (!activity.value || !activityId.value) return
   
-  // 检查登录状态
-  const { ok } = await checkLogin()
-  if (!ok) {
+  // NOTE: 只检查是否已登录（有 openid），不要求必须绑定手机或设置昵称
+  // checkLogin() 要求 phone/nickName 非空，对只设了头像的用户会误判
+  const isLoggedIn = uni.getStorageSync('is_logged_in') === true
+  if (!isLoggedIn) {
     uni.showToast({ title: '请先登录后再报名', icon: 'none', duration: 2500 })
     setTimeout(() => {
       uni.switchTab({ url: '/pages/profile/index' })
@@ -1071,16 +1116,25 @@ onShareTimeline(() => {
   margin-top: 4px;
 }
 
-// NOTE: 图片容器不再强制 1:1，改用自然比例
+// NOTE: 备注图片容器：灰色骨架背景，图片未加载时显示占位
 .remark-img-wrap {
   position: relative;
   width: 100%;
   overflow: hidden;
+  background: #E5E5EA;
+  border-radius: 8px;
 }
 
 .remark-img {
   width: 100%;
   display: block;
+  // NOTE: 默认透明，@load 后淡入，骨架容器背景占位，消除 pop-in
+  opacity: 0;
+  transition: opacity 0.25s ease;
+
+  &.remark-img--loaded {
+    opacity: 1;
+  }
 }
 
 .detail-label {
@@ -1107,12 +1161,27 @@ onShareTimeline(() => {
   }
 }
 
-// NOTE: 联系方式行：类型标签（手机/微信）+ 号码横排显示，与 detail-row 的 flex 布局配合
+// NOTE: 联系方式行：标签在左、号码或二维码图在右，水平居中对齐
 .detail-contact-row {
   flex: 1;
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+// NOTE: 默认透明，@load 后淡入，与备注图片、头像保持一致
+.detail-wechat-qr {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+
+  &--loaded { opacity: 1; }
 }
 
 .detail-contact-type {
@@ -1276,20 +1345,28 @@ onShareTimeline(() => {
 }
 
 // NOTE: 参与者头像包裹容器：始终显示灰色占位圆，image 用 CSS fadeIn 动画淡入
+// NOTE: 容器灰色骨架占位，图片加载完成前显示灰底，消除空白→图片突然出现的弹出感
 .participant-avatar-wrap-large {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: $ios-bg-tertiary;
+  background: #E5E5EA;
   overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
+// NOTE: 与发起人头像 / ActivityCard 头像统一：默认透明，@load 后淡入，过渡 0.25s
 .participant-avatar-inner {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  animation: avatarFadeIn 0.3s ease;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+
+  &--loaded {
+    opacity: 1;
+  }
 }
 
 .participant-avatar-placeholder-large {
@@ -1539,17 +1616,16 @@ onShareTimeline(() => {
 
 .join-btn {
   width: 100%;
-  height: 50px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+  background: $ios-blue;
   color: #fff;
   font-size: 16px;
   font-weight: $ios-font-weight-semibold;
-  border-radius: 25px;
+  border-radius: $ios-radius-lg;
   border: none;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
   transition: all 0.2s ease;
 
   &::after {
@@ -1562,10 +1638,10 @@ onShareTimeline(() => {
   }
 
   &[disabled] {
-    background: $ios-bg-tertiary;
-    color: $ios-text-tertiary;
+    background: #8e8e93;
+    color: #fff;
     box-shadow: none;
-    opacity: 0.6;
+    opacity: 0.8;
   }
 }
 

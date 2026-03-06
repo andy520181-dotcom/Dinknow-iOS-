@@ -89,91 +89,34 @@
               </view>
             </view>
 
-            <!-- 费用：均摊 / 金额 标签切换，结构与联系方式栏完全对称 -->
-            <view class="ios-cell ios-cell--fee">
+            <!-- 费用：点击跳转独立编辑页 -->
+            <view class="ios-cell ios-cell--tap" @tap="goToFeeEdit">
               <image class="ios-cell__row-icon" src="/static/icons/feiyongdanju.png" mode="aspectFit" />
-              <text class="ios-cell__label ios-cell__label--inline">费用</text>
-              <!-- NOTE: 标签文字与胶囊切换之间的浅灰色竖线分隔 -->
-              <view class="cell-divider" />
-              <!-- 类型切换胶囊 -->
-              <view class="contact-type-tabs">
-                <view
-                  class="contact-type-tab"
-                  :class="{ 'contact-type-tab--active': feeTypeTouched && feeType === 'aa' }"
-                  @tap="selectFeeType('aa')"
-                >
-                  <text class="contact-type-tab-text">均摊</text>
-                </view>
-                <view
-                  class="contact-type-tab"
-                  :class="{ 'contact-type-tab--active': feeTypeTouched && feeType === 'custom' }"
-                  @tap="selectFeeType('custom')"
-                >
-                  <text class="contact-type-tab-text">金额</text>
-                </view>
+              <text class="ios-cell__label">费用</text>
+              <view class="ios-cell__value ios-cell__value--right">
+                <text v-if="feeType === 'aa'" class="ios-cell__value-text">AA</text>
+                <text v-else-if="feeType === 'custom' && fee" class="ios-cell__value-text">{{ fee }}元/人</text>
+                <text v-else class="ios-cell__placeholder">请设置</text>
               </view>
-              <!-- NOTE: 均摊时显示只读"AA"，flex:1 确保与金额行占同一右侧区域 -->
-              <text
-                v-if="feeTypeTouched && feeType === 'aa'"
-                class="ios-fee-aa"
-              >AA</text>
-              <!-- NOTE: 金额时显示数字输入框 + 元/人后缀 -->
-              <view v-if="feeTypeTouched && feeType === 'custom'" class="ios-fee-row">
-                <input
-                  class="ios-fee-input"
-                  type="digit"
-                  placeholder="0"
-                  placeholder-class="ios-input-placeholder"
-                  :value="fee"
-                  @input="onFeeInput"
-                />
-                <text class="ios-fee-unit">元/人</text>
-              </view>
+              <text class="ios-cell__chevron">›</text>
             </view>
 
-
-            <!-- 联系方式：类型切换 + 输入框 -->
-            <view class="ios-cell ios-cell--contact">
+            <!-- 联系方式：点击跳转独立编辑页 -->
+            <view class="ios-cell ios-cell--tap" @tap="goToContactEdit">
               <image class="ios-cell__row-icon" src="/static/icons/lianxifangshi.png" mode="aspectFit" />
-              <text class="ios-cell__label ios-cell__label--inline">联系方式</text>
-              <!-- NOTE: 标签文字与胶囊切换之间的浅灰色竖线分隔 -->
-              <view class="cell-divider" />
-              <!-- 类型切换胶囊 -->
-              <view class="contact-type-tabs">
-                <view
-                  class="contact-type-tab"
-                  :class="{ 'contact-type-tab--active': contactTypeTouched && contactType === 'phone' }"
-                  @tap="selectContactType('phone')"
-                >
-                  <text class="contact-type-tab-text">手机</text>
-                </view>
-                <view
-                  class="contact-type-tab"
-                  :class="{ 'contact-type-tab--active': contactTypeTouched && contactType === 'wechat' }"
-                  @tap="selectContactType('wechat')"
-                >
-                  <text class="contact-type-tab-text">微信</text>
-                </view>
+              <text class="ios-cell__label">联系方式</text>
+              <view class="ios-cell__value ios-cell__value--right ios-cell__value--ellipsis">
+                <!-- NOTE: 手机直接显示号码，不加「手机」前缀 -->
+                <text v-if="contactType === 'phone' && phoneContact" class="ios-cell__value-text">
+                  {{ phoneContact }}
+                </text>
+                <!-- NOTE: 微信模式 wechatContact 存储的是二维码图片路径 -->
+                <text v-else-if="contactType === 'wechat' && wechatContact" class="ios-cell__value-text">
+                  微信二维码已上传
+                </text>
+                <text v-else class="ios-cell__placeholder">请设置</text>
               </view>
-              <!-- NOTE: 手机和微信各一个 input，用 v-show 切换，避免切换类型时 placeholder 闪现 -->
-              <input
-                v-show="contactTypeTouched && contactType === 'phone'"
-                class="ios-contact-input"
-                type="number"
-                placeholder="请输入手机号"
-                placeholder-class="ios-input-placeholder"
-                :value="phoneContact"
-                @input="(e: any) => { phoneContact = e.detail.value }"
-              />
-              <input
-                v-show="contactTypeTouched && contactType === 'wechat'"
-                class="ios-contact-input"
-                type="text"
-                placeholder="请输入微信号"
-                placeholder-class="ios-input-placeholder"
-                :value="wechatContact"
-                @input="(e: any) => { wechatContact = e.detail.value }"
-              />
+              <text class="ios-cell__chevron">›</text>
             </view>
           </view>
 
@@ -223,9 +166,13 @@ import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { createActivity, updateActivity } from '../../services/activity'
 import { getProfile } from '../../services/user'
-import { chooseLocation, getUserLocation } from '../../utils/location'
+import { callCloudFunction } from '../../services/cloud'
+import { chooseLocation } from '../../utils/location'
 import type { LocationInfo, User } from '../../types'
 import { STORAGE_USER_LOCATION } from '../../constants'
+
+// NOTE: wx 为微信小程序全局对象，uni-app 环境下由平台注入
+declare const wx: any
 
 
 const disclaimerAccepted = ref(false)
@@ -245,8 +192,8 @@ const latitude = ref<number | undefined>()
 const longitude = ref<number | undefined>()
 const maxParticipantsInput = ref('8')
 const fee = ref('')
-// NOTE: 费用类型：aa | custom。初始不高亮，首次点击后激活，与联系方式逻辑一致
-const feeType = ref<'aa' | 'custom'>('custom')
+// NOTE: 费用类型：aa | custom，初始不选中（空字符串），进入独立编辑页选择 
+const feeType = ref<'aa' | 'custom' | ''>('')
 const feeTypeTouched = ref(false)
 
 function selectFeeType(type: 'aa' | 'custom') {
@@ -264,8 +211,8 @@ function selectFeeType(type: 'aa' | 'custom') {
 // NOTE: 手机和微信号独立存储，切换类型时各自空白，不互相污染
 const phoneContact = ref('')
 const wechatContact = ref('')
-// NOTE: 联系方式类型：phone | wechat，默认手机
-const contactType = ref<'phone' | 'wechat'>('phone')
+// NOTE: 联系方式类型：phone | wechat，初始不选中（空字符串），进入独立编辑页选择
+const contactType = ref<'phone' | 'wechat' | ''>('')
 // NOTE: 初始不高亮任何胶囊，与其他字段初始空白状态保持视觉一致；用户首次点击后才激活蓝色选中态
 const contactTypeTouched = ref(false)
 
@@ -291,6 +238,10 @@ const locationManuallySet = ref(false)
 const avatarLoaded = ref(false)
 
 const submitting = ref(false)
+// NOTE: 标记是否正在返回自子页（edit-fee/edit-contact/edit-remark）
+// true  → onShow 读 Storage 同步新数据
+// false → onShow 是小程序从后台恢复，新建模式下需清空残留数据
+const returningFromSubPage = ref(false)
 const editingActivityId = ref<string | null>(null)
 const currentUser = ref<User | null>(null)
 
@@ -373,13 +324,39 @@ const timeDisplayText = computed(() => {
   return `${dateLabel} ${timePart}`
 })
 
-// 读取 remark 编辑页保存的内容（文字 + 图片）
+// NOTE: 读取各独立编辑页（备注、费用、联系方式）保存到 Storage 的内容，回填到主表单
 function syncRemarkFromStorage() {
+  // ── 备注 ──
   const cached = uni.getStorageSync('editing_activity_remark')
   if (typeof cached === 'string') description.value = cached
 
   const cachedImages = uni.getStorageSync('editing_activity_remark_images')
   if (Array.isArray(cachedImages)) remarkImages.value = cachedImages
+
+  // ── 费用（来自 edit-fee 页）──
+  const cachedFeeType = uni.getStorageSync('editing_activity_fee_type')
+  if (cachedFeeType === 'aa') {
+    feeType.value = 'aa'
+    fee.value = ''
+  } else if (cachedFeeType === 'custom') {
+    feeType.value = 'custom'
+    const cachedFeeAmount = uni.getStorageSync('editing_activity_fee_amount')
+    if (typeof cachedFeeAmount === 'string') fee.value = cachedFeeAmount
+  }
+
+  // ── 联系方式（来自 edit-contact 页）──
+  const cachedContactType = uni.getStorageSync('editing_activity_contact_type')
+  if (cachedContactType === 'phone' || cachedContactType === 'wechat') {
+    contactType.value = cachedContactType
+    if (cachedContactType === 'phone') {
+      const v = uni.getStorageSync('editing_activity_contact_value')
+      if (typeof v === 'string') phoneContact.value = v
+    } else {
+      // NOTE: 微信二维码模式：从独立 key 取图片路径，wechatContact 存路径用于摘要和提交
+      const qr = uni.getStorageSync('editing_activity_contact_wechat_qr')
+      if (typeof qr === 'string') wechatContact.value = qr
+    }
+  }
 }
 
 // 从本地缓存读取正在编辑的活动，并预填充到表单中
@@ -515,7 +492,45 @@ function onDescriptionInput(e: any) {
 function goToRemarkEdit() {
   uni.setStorageSync('editing_activity_remark', description.value || '')
   uni.setStorageSync('editing_activity_remark_images', remarkImages.value)
+  returningFromSubPage.value = true
   uni.navigateTo({ url: '/pages/edit-remark/index' })
+}
+
+// NOTE: 新建模式不写 Storage（防止旧缓存污染编辑页）；编辑模式才写入当前已选值以回显
+// NOTE: 已有值时写入 Storage（编辑页回显）；首次进入（无值）时清除防止旧 Session 污染
+function goToFeeEdit() {
+  if (feeType.value) {
+    // NOTE: 已设置过费用，写入让编辑页回显已选值，方便用户修改
+    uni.setStorageSync('editing_activity_fee_type', feeType.value)
+    uni.setStorageSync('editing_activity_fee_amount', fee.value || '')
+  } else {
+    // NOTE: 首次进入（未设置），清除防止上次会话残留预选
+    uni.removeStorageSync('editing_activity_fee_type')
+    uni.removeStorageSync('editing_activity_fee_amount')
+  }
+  returningFromSubPage.value = true
+  uni.navigateTo({ url: '/pages/edit-fee/index' })
+}
+
+// NOTE: 已有值时写入 Storage（编辑页回显）；首次进入（无值）时清除防止旧 Session 污染
+function goToContactEdit() {
+  if (contactType.value) {
+    uni.setStorageSync('editing_activity_contact_type', contactType.value)
+    if (contactType.value === 'phone') {
+      uni.setStorageSync('editing_activity_contact_value', phoneContact.value || '')
+      uni.removeStorageSync('editing_activity_contact_wechat_qr')
+    } else {
+      uni.setStorageSync('editing_activity_contact_value', '')
+      uni.setStorageSync('editing_activity_contact_wechat_qr', wechatContact.value || '')
+    }
+  } else {
+    // NOTE: 首次进入（未设置），清除防止上次会话残留预选
+    uni.removeStorageSync('editing_activity_contact_type')
+    uni.removeStorageSync('editing_activity_contact_value')
+    uni.removeStorageSync('editing_activity_contact_wechat_qr')
+  }
+  returningFromSubPage.value = true
+  uni.navigateTo({ url: '/pages/edit-contact/index' })
 }
 
 function handleBack() {
@@ -541,7 +556,28 @@ function handleBack() {
     })
     return
   }
-  // 非编辑模式（新建），直接返回
+  // NOTE: 新建模式：有内容时提示保存草稿
+  if (isFormDirty.value) {
+    uni.showActionSheet({
+      itemList: ['保存草稿', '不保存'],
+      success: (res) => {
+        if (res.tapIndex === 0) {
+          // 保存草稿
+          saveDraft()
+          uni.showToast({ title: '草稿已保存', icon: 'success', duration: 1500 })
+          setTimeout(() => uni.switchTab({ url: '/pages/index/index' }), 800)
+        } else {
+          // 不保存，清空并返回
+          resetForm()
+          uni.switchTab({ url: '/pages/index/index' })
+        }
+      },
+      fail: () => {
+        // NOTE: 用户点击取消 = 继续编辑，不做任何操作
+      }
+    })
+    return
+  }
   uni.switchTab({ url: '/pages/index/index' })
 }
 
@@ -565,8 +601,9 @@ function handleSubmitClick() {
   if (!maxParticipantsInput.value.trim() || Number(maxParticipantsInput.value) <= 0) {
     uni.showToast({ title: '请输入人数', icon: 'none' }); return
   }
-  if (!feeTypeTouched.value) {
-    uni.showToast({ title: '请选择费用类型', icon: 'none' }); return
+  // NOTE: feeType 有值即视为已设置（通过独立编辑页设置）
+  if (!feeType.value) {
+    uni.showToast({ title: '请设置费用', icon: 'none' }); return
   }
   if (feeType.value === 'custom' && !fee.value.trim()) {
     uni.showToast({ title: '请输入费用', icon: 'none' }); return
@@ -614,18 +651,46 @@ async function handleSubmit() {
     }
   }
 
-  // NOTE: 备注图片：临时路径上传到云存储，获取 fileID
+  // NOTE: 备注图片：优先走 COS 预签名直传（永久 HTTPS URL），降级到云开发存储（cloud://）
   let uploadedImages: string[] = []
   // #ifdef MP-WEIXIN
   if (remarkImages.value.length > 0) {
     uni.showLoading({ title: '处理图片...' })
     try {
-      const tasks = remarkImages.value.map((path, i) => {
-        // 已是 cloud:// 的跳过重传
-        if (path.startsWith('cloud://')) return Promise.resolve(path)
+      const tasks = remarkImages.value.map(async (path, i) => {
+        // NOTE: 已是 https:// 或 cloud:// 说明已上传过，直接复用，不重传
+        if (path.startsWith('https://') || path.startsWith('cloud://')) return path
+
+        const cosKey = `activity-remarks/${Date.now()}-${i}.jpg`
+
+        try {
+          // NOTE: 调用云函数获取 COS 预签名 PUT URL 及对应 CDN 永久访问 URL
+          const cosRes: any = await callCloudFunction('uploadToCOS', { fileName: cosKey, fileType: 'image/jpeg' })
+
+          if (cosRes?.success && cosRes.uploadUrl) {
+            await new Promise<void>((resolve, reject) => {
+              uni.request({
+                url: cosRes.uploadUrl,
+                method: 'PUT',
+                data: uni.getFileSystemManager().readFileSync(path),
+                header: { 'Content-Type': 'image/jpeg' },
+                success: (res) => {
+                  if (res.statusCode >= 200 && res.statusCode < 300) resolve()
+                  else reject(new Error(`COS 上传失败: ${res.statusCode}`))
+                },
+                fail: reject
+              })
+            })
+            return cosRes.cdnUrl as string
+          }
+        } catch (cosErr) {
+          console.warn('[备注图片] COS 上传失败，降级到云存储:', cosErr)
+        }
+
+        // HACK: COS 不可用时降级到微信云开发存储
         const cloudPath = `activity-remarks/${Date.now()}-${i}.jpg`
-        return (wx as any).cloud.uploadFile({ cloudPath, filePath: path })
-          .then((r: any) => r.fileID as string)
+        const r: any = await (wx as any).cloud.uploadFile({ cloudPath, filePath: path })
+        return r.fileID as string
       })
       uploadedImages = await Promise.all(tasks)
     } catch (e) {
@@ -635,6 +700,12 @@ async function handleSubmit() {
     }
   }
   // #endif
+
+  // NOTE: 微信二维码模式：wechatContact 在 edit-contact 选图时已上传并存为永久 cloud:// URL，直接使用
+  // 已是 cloud:// 或 https:// 格式，无需在提交时重新上传
+  const finalContactInfo = contactType.value === 'wechat'
+    ? wechatContact.value  // 永久 URL（cloud:// 或 CDN https://）
+    : phoneContact.value.trim()
 
   const payload = {
     title: title.value.trim(),
@@ -647,7 +718,7 @@ async function handleSubmit() {
     longitude: longitude.value,
     maxParticipants: maxNum,
     fee: feeNum,
-    contactInfo: activeContactInfo.value.trim() || undefined,
+    contactInfo: finalContactInfo || undefined,
     contactType: contactType.value,
     duprLevel: selectedDupr.value || undefined,
     description: description.value.trim() || undefined,
@@ -700,66 +771,216 @@ function resetForm() {
   longitude.value = undefined
   maxParticipantsInput.value = '8'
   fee.value = ''
-  feeType.value = 'custom'
+  // NOTE: 重置为空字符串，不预选任何费用类型；旧值 'custom' 会导致编辑页预选
+  feeType.value = ''
   feeTypeTouched.value = false
   phoneContact.value = ''
   wechatContact.value = ''
+  contactType.value = ''
+  contactTypeTouched.value = false
   description.value = ''
   selectedDupr.value = ''
   editingActivityId.value = null
-  // 清空备注缓存
+  // NOTE: 清空备注 + 费用 + 联系方式编辑页缓存，防止下次进入时读到旧选中值
   uni.removeStorageSync('editing_activity_remark')
   uni.removeStorageSync('editing_activity_remark_images')
+  uni.removeStorageSync('editing_activity_fee_type')
+  uni.removeStorageSync('editing_activity_fee_amount')
+  uni.removeStorageSync('editing_activity_contact_type')
+  uni.removeStorageSync('editing_activity_contact_value')
+  uni.removeStorageSync('editing_activity_contact_wechat_qr')
   uni.removeStorageSync('editing_activity_id')
+  // NOTE: 发布或明确不保存时，同步清除草稿
+  uni.removeStorageSync(DRAFT_KEY)
   remarkImages.value = []
   locationManuallySet.value = false
-  contactTypeTouched.value = false
   disclaimerAccepted.value = false
 }
 
-// 初始：加载当前用户信息 + 缓存位置 + 编辑数据 + 备注
+// NOTE: 草稿 Storage key
+const DRAFT_KEY = 'editing_activity_draft'
+
+/** 判断表单是否有内容（新建模式下） */
+const isFormDirty = computed(() =>
+  !editingActivityId.value && (
+    title.value.trim().length > 0 ||
+    startDate.value.length > 0 ||
+    address.value.trim().length > 0 ||
+    // NOTE: 使用 Touched 标记而非 value !== ''，避免 Storage 自动回读导致误判（空表单也触发保存提示）
+    feeTypeTouched.value ||
+    fee.value.trim().length > 0 ||
+    contactTypeTouched.value ||
+    phoneContact.value.trim().length > 0 ||
+    wechatContact.value.length > 0 ||
+    description.value.trim().length > 0 ||
+    remarkImages.value.length > 0
+  )
+)
+
+/** 将所有表单字段序列化到 Storage */
+function saveDraft() {
+  const draft = {
+    title: title.value,
+    startDate: startDate.value,
+    startTime: startTime.value,
+    endTime: endTime.value,
+    address: address.value,
+    venueName: venueName.value,
+    latitude: latitude.value,
+    longitude: longitude.value,
+    maxParticipantsInput: maxParticipantsInput.value,
+    feeType: feeType.value,
+    fee: fee.value,
+    contactType: contactType.value,
+    phoneContact: phoneContact.value,
+    wechatContact: wechatContact.value,
+    description: description.value,
+    remarkImages: remarkImages.value,
+    selectedDupr: selectedDupr.value,
+    // 联系方式子页缓存（确保下次点进编辑页时回显）
+    contactWechatQr: uni.getStorageSync('editing_activity_contact_wechat_qr') || ''
+  }
+  uni.setStorageSync(DRAFT_KEY, JSON.stringify(draft))
+}
+
+/** 从 Storage 恢复草稿到表单 */
+function restoreDraft(draft: Record<string, any>) {
+  title.value = draft.title || ''
+  startDate.value = draft.startDate || ''
+  startTime.value = draft.startTime || ''
+  endTime.value = draft.endTime || ''
+  address.value = draft.address || ''
+  venueName.value = draft.venueName || ''
+  latitude.value = draft.latitude
+  longitude.value = draft.longitude
+  maxParticipantsInput.value = draft.maxParticipantsInput || '8'
+  feeType.value = draft.feeType || ''
+  feeTypeTouched.value = feeType.value !== ''
+  fee.value = draft.fee || ''
+  contactType.value = draft.contactType || ''
+  contactTypeTouched.value = contactType.value !== ''
+  phoneContact.value = draft.phoneContact || ''
+  wechatContact.value = draft.wechatContact || ''
+  description.value = draft.description || ''
+  remarkImages.value = Array.isArray(draft.remarkImages) ? draft.remarkImages : []
+  selectedDupr.value = draft.selectedDupr || ''
+  // 恢复联系方式子页缓存
+  if (draft.contactWechatQr) {
+    uni.setStorageSync('editing_activity_contact_wechat_qr', draft.contactWechatQr)
+  }
+  if (draft.contactType) {
+    uni.setStorageSync('editing_activity_contact_type', draft.contactType)
+    if (draft.contactType === 'phone') {
+      uni.setStorageSync('editing_activity_contact_value', draft.phoneContact || '')
+    }
+  }
+  if (draft.feeType) {
+    uni.setStorageSync('editing_activity_fee_type', draft.feeType)
+    if (draft.feeType === 'custom') {
+      uni.setStorageSync('editing_activity_fee_amount', draft.fee || '')
+    }
+  }
+}
+
+/**
+ * NOTE: 同步检查登录态（读本地缓存标记，无需网络），未登录立即跳转个人页（登录页）。
+ * 方案 A：进入发起活动页前先拦截，不让未登录用户填写表单后被静默清空。
+ */
+function checkLoginOrRedirect(): boolean {
+  const logged = uni.getStorageSync('is_logged_in') === true
+  if (!logged) {
+    uni.showToast({ title: '请先登录后再发起活动', icon: 'none', duration: 2000 })
+    setTimeout(() => {
+      uni.switchTab({ url: '/pages/profile/index' })
+    }, 1200)
+    return false
+  }
+  return true
+}
+
+// 初始：加载当前用户信息 + 编辑数据 + 备注
+// NOTE: 不再自动填充当前位置到地点栏，避免用户误以为已选好球馆地址；地点栏初始显示「请选择」占位，点击后才跳转地图
 onMounted(async () => {
-  // 并行加载用户信息和位置，提高加载速度
-  const [profile] = await Promise.allSettled([
-    getProfile(),
-    (async () => {
-      try {
-        const cached = uni.getStorageSync(STORAGE_USER_LOCATION) as LocationInfo | undefined
-        if (cached?.address) {
-          address.value = cached.address
-          latitude.value = cached.latitude
-          longitude.value = cached.longitude
-        } else {
-          const loc = await getUserLocation()
-          if (loc) {
-            address.value = loc.address || ''
-            latitude.value = loc.latitude
-            longitude.value = loc.longitude
-          }
-        }
-      } catch (error) {
-        console.error('加载位置失败:', error)
-      }
-    })()
-  ])
-  if (profile.status === 'fulfilled') {
-    currentUser.value = profile.value
+  // NOTE: 首次挂载即拦截，未登录跳转登录页，不渲染表单
+  if (!checkLoginOrRedirect()) return
+
+  const profile = await getProfile().catch(() => null)
+  if (profile) {
+    currentUser.value = profile
   }
 
   applyEditingActivityFromStorage()
-  syncRemarkFromStorage()
+
+  // NOTE: 非编辑模式（新建活动）时，检测是否有保存的草稿
+  if (!editingActivityId.value) {
+    const draftStr = uni.getStorageSync(DRAFT_KEY)
+    if (draftStr) {
+      // 有草稿，弹询问弹窗
+      uni.showModal({
+        title: '发现未完成草稿',
+        content: '上次有未发布的活动草稿，是否继续编辑？',
+        confirmText: '继续编辑',
+        cancelText: '丢弃草稿',
+        success: (res) => {
+          if (res.confirm) {
+            try {
+              restoreDraft(JSON.parse(draftStr))
+            } catch (e) {
+              uni.removeStorageSync(DRAFT_KEY)
+            }
+          } else {
+            // 丢弃草稿 → 清除并进入空白表单
+            uni.removeStorageSync(DRAFT_KEY)
+            // 同时清 fee/contact 子页 Storage 避免残留
+            uni.removeStorageSync('editing_activity_fee_type')
+            uni.removeStorageSync('editing_activity_fee_amount')
+            uni.removeStorageSync('editing_activity_contact_type')
+            uni.removeStorageSync('editing_activity_contact_value')
+            uni.removeStorageSync('editing_activity_contact_wechat_qr')
+          }
+        }
+      })
+    } else {
+      // 无草稿，清 fee/contact Storage 防止历史残留
+      uni.removeStorageSync('editing_activity_fee_type')
+      uni.removeStorageSync('editing_activity_fee_amount')
+      uni.removeStorageSync('editing_activity_contact_type')
+      uni.removeStorageSync('editing_activity_contact_value')
+      uni.removeStorageSync('editing_activity_contact_wechat_qr')
+      syncRemarkFromStorage()
+    }
+  } else {
+    syncRemarkFromStorage()
+  }
 })
 
-// NOTE: 每次切回页面：同步活动备注，并刷新用户头像/昵称（兼容个人页修改后返回）
+// NOTE: 每次切回页面：先检测登录，未登录立即跳转
 onShow(() => {
-  applyEditingActivityFromStorage()
-  syncRemarkFromStorage()
+  if (!checkLoginOrRedirect()) return
+
+  if (returningFromSubPage.value) {
+    // NOTE: 从子页（edit-fee/contact/remark）返回，读 Storage 更新表单状态
+    returningFromSubPage.value = false
+    applyEditingActivityFromStorage()
+    syncRemarkFromStorage()
+  } else if (editingActivityId.value) {
+    // NOTE: 编辑现有活动从后台恢复，同步数据
+    applyEditingActivityFromStorage()
+    syncRemarkFromStorage()
+  } else {
+    // NOTE: 新建模式从后台恢复（非子页返回）——
+    // onMounted 已清 Storage，这里同步重置内存中的 fee/contact ref，防止展示上次测试的残留数据
+    feeType.value = ''
+    fee.value = ''
+    contactType.value = ''
+    phoneContact.value = ''
+    wechatContact.value = ''
+    applyEditingActivityFromStorage()
+  }
+
   getProfile().then(profile => {
     if (profile) {
       currentUser.value = profile
-    } else {
-      // NOTE: 未登录时清空表单，避免退出登录后仍显示上次填写的内容
-      resetForm()
     }
   }).catch(() => {})
 })
@@ -789,8 +1010,8 @@ onShow(() => {
 .ios-section {
   background: $ios-bg-primary;
   border-radius: 14px;
-  // NOTE: margin-bottom 与左右边距统一为 16px，卡片间距与边距一致，整体更规整
-  margin: 0 16px $ios-spacing-lg;
+  // NOTE: margin-bottom 统一为 12px，与全局卡片间距规范一致
+  margin: 0 16px $ios-spacing-md;
   overflow: hidden;
 }
 
@@ -1014,65 +1235,100 @@ onShow(() => {
   color: $ios-text-primary;
 }
 
-// ── 联系方式：类型切换胶囊 ──────────────────────────────────
-.ios-cell--contact {
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  min-height: 60px;
-  align-items: center;
+// ── 两段式 cell：费用/联系方式 ──────────────────────────────
+// NOTE: 两段式布局 —— flex 纵向排列，第一行展示图标+标签+胶囊，第二行展示内容
+.ios-cell--two-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  min-height: auto;
 }
 
-.contact-type-tabs {
+.ios-cell--fee,
+.ios-cell--contact {
+  // 通过 two-row 控制，此处不再额外设置
+}
+
+// 第一行：图标 + 标签 + 切换胶囊，横向排列
+.ios-cell-row1 {
   display: flex;
+  flex-direction: row;
+  align-items: center;
   gap: 6px;
+  width: 100%;
+}
+
+// 第二行：内容区（输入框 / 金额）
+.ios-cell-row2 {
+  margin-top: 10px;
+  padding-left: 26px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+
+  // NOTE: 靠右对齐修饰类——内容区 justify-content:flex-end，输入框文字 text-align:right
+  &--right {
+    justify-content: flex-end;
+
+    .ios-contact-input,
+    .ios-fee-input {
+      text-align: right;
+    }
+
+    .ios-input-placeholder {
+      text-align: right;
+    }
+  }
+}
+
+.ios-cell-row2__value {
+  font-size: 16px;
+  color: $ios-text-primary;
+}
+
+// NOTE: 纯文字切换标签（无背景胶囊）—— 靠右排列，用颜色区分选中态
+.plain-type-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
   flex-shrink: 0;
 }
 
-.contact-type-tab {
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: $ios-bg-secondary;
-  transition: all 0.15s ease;
+.plain-type-tab {
+  font-size: 16px;
+  color: $ios-text-tertiary;
+  white-space: nowrap;
 
   &--active {
-    background: $ios-blue;
-    .contact-type-tab-text { color: #fff; }
+    color: $ios-blue;
+    font-weight: $ios-font-weight-medium;
   }
 
-  &:active { opacity: 0.7; }
+  &:active { opacity: 0.5; }
 }
 
-.contact-type-tab-text {
-  font-size: 12px;
-  color: $ios-text-secondary;
-  white-space: nowrap;
+.plain-type-sep {
+  font-size: 10px;
+  color: $ios-text-tertiary;
 }
 
+// 联系方式/费用输入框
 .ios-contact-input {
   flex: 1;
-  min-width: 80px;
   font-size: 16px;
   color: $ios-text-primary;
   text-align: right;
-}
-
-// NOTE: 费用栏与联系方式栏对齐，支持标签+输入框换行排列
-.ios-cell--fee {
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  min-height: 60px;
-  align-items: center;
+  min-width: 0;
 }
 
 .ios-fee-row {
-  flex: 1;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 4px;
 }
 
@@ -1084,26 +1340,10 @@ onShow(() => {
   max-width: 100px;
 }
 
-// NOTE: 均摊时 AA 文字：flex:1 撑满剩余空间，与金额行 ios-fee-row(flex:1) 对齐同一右侧位置
-.ios-fee-aa {
-  flex: 1;
-  font-size: 16px;
-  color: $ios-text-primary;
-  text-align: right;
-}
-
 .ios-fee-unit {
-  font-size: 16px;
+  font-size: 12px;
   color: $ios-text-secondary;
   flex-shrink: 0;
-}
-
-// NOTE: AA 模式只读展示文字，与 ios-contact-input 右对齐风格一致
-.ios-fee-aa-text {
-  flex: 1;
-  font-size: 16px;
-  color: $ios-text-primary;
-  text-align: right;
 }
 
 .ios-cell--remark-top {

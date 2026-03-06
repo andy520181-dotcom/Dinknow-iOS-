@@ -21,49 +21,47 @@ exports.main = async (event, context) => {
       let participants = []
       let hostAvatar = null
       let hostName = null
-      let hostAvatarUrl = null
-      let participantsWithUrl = []
 
       try {
-        // 先统计总数
+        // 统计报名人数
         const countRes = await db.collection('registrations').where({ activityId: a._id, status: 'joined' }).count()
         currentCount = countRes.total || 0
-        
-        // 获取已报名用户信息（最多17个，与发起人合计最多18个头像展示）
+
+        // 获取已报名用户信息（最多17个）
         if (currentCount > 0) {
           const regRes = await db.collection('registrations')
             .where({ activityId: a._id, status: 'joined' })
             .orderBy('joinedAt', 'asc')
             .limit(17)
             .get()
-          
-          // 获取已报名用户的头像和昵称
+
           if (regRes.data && regRes.data.length > 0) {
             const openids = regRes.data.map(r => r.userId).filter(Boolean)
             if (openids.length > 0) {
               const usersRes = await db.collection('users')
                 .where({ openid: db.command.in(openids) })
                 .get()
-              
+
               const userMap = {}
               if (usersRes.data) {
                 usersRes.data.forEach(u => {
-                  userMap[u.openid] = { userId: u.openid, avatarUrl: u.avatarUrl, nickName: u.nickName }
+                  // NOTE: 直接使用 cloud:// 或 https:// 原始 URL，<image> 原生支持 cloud://，无需转换
+                  userMap[u.openid] = { userId: u.openid, avatarUrl: u.avatarUrl || '', nickName: u.nickName }
                 })
               }
-              
-              // 按报名顺序组装participants
-              participants = regRes.data.map(r => userMap[r.userId] || { userId: r.userId })
+              participants = regRes.data.map(r => userMap[r.userId] || { userId: r.userId, avatarUrl: '', nickName: '' })
             }
           }
         }
-        
-        // 获取创建者信息（hostAvatar 和 hostName）
+
+        // 获取发起人最新头像和昵称
         if (a.hostId) {
           try {
             const hostRes = await db.collection('users').where({ openid: a.hostId }).get()
             if (hostRes.data && hostRes.data.length > 0) {
               const host = hostRes.data[0]
+              // NOTE: 直接返回 cloud:// 原始 URL，不做 getTempFileURL 转换；
+              // 微信 <image> 原生支持 cloud:// 协议，URL 稳定不变，从根本上消除因新旧 URL 字符串差异导致的闪烁
               hostAvatar = host.avatarUrl || null
               hostName = host.nickName || null
             }
@@ -71,75 +69,16 @@ exports.main = async (event, context) => {
             console.error('获取创建者信息失败:', e)
           }
         }
-
-        // 统一获取所有头像的临时 URL（含报名人），非 http 的均视为云存储 fileID 并换取临时链接
-        const isFileID = (url) => typeof url === 'string' && url.trim() !== '' && !url.startsWith('http://') && !url.startsWith('https://')
-        const avatarFileIDs = []
-        if (hostAvatar && isFileID(hostAvatar)) {
-          avatarFileIDs.push(hostAvatar)
-        }
-        participants.forEach(p => {
-          if (p && p.avatarUrl && isFileID(p.avatarUrl)) {
-            avatarFileIDs.push(p.avatarUrl)
-          }
-        })
-        const fileIDToUrl = {}
-        if (avatarFileIDs.length > 0) {
-          try {
-            const tempRes = await cloud.getTempFileURL({ fileList: avatarFileIDs })
-            if (tempRes.fileList && Array.isArray(tempRes.fileList)) {
-              tempRes.fileList.forEach(item => {
-                if (item.tempFileURL) fileIDToUrl[item.fileID] = item.tempFileURL
-              })
-            }
-          } catch (e) {
-            console.error('获取头像临时链接失败:', e)
-          }
-        }
-        // 发起人头像：优先用临时链接，若批量失败则单独再试一次
-        if (hostAvatar && isFileID(hostAvatar)) {
-          hostAvatarUrl = fileIDToUrl[hostAvatar] || hostAvatar
-          if (!fileIDToUrl[hostAvatar]) {
-            try {
-              const hostRes = await cloud.getTempFileURL({ fileList: [hostAvatar] })
-              if (hostRes.fileList && hostRes.fileList[0] && hostRes.fileList[0].tempFileURL) {
-                hostAvatarUrl = hostRes.fileList[0].tempFileURL
-              }
-            } catch (e2) {
-              console.error('获取发起人头像临时链接失败:', e2)
-            }
-          }
-        } else {
-          hostAvatarUrl = hostAvatar
-        }
-        // 报名人头像：与发起人相同，非 http 的均换临时链接，缺失时单独拉取
-        participantsWithUrl = await Promise.all(participants.map(async (p) => {
-          const raw = p.avatarUrl || ''
-          let avatarUrl = (raw && fileIDToUrl[raw]) ? fileIDToUrl[raw] : (raw && !isFileID(raw) ? raw : '')
-          if (raw && isFileID(raw) && !fileIDToUrl[raw]) {
-            try {
-              const oneRes = await cloud.getTempFileURL({ fileList: [raw] })
-              if (oneRes.fileList && oneRes.fileList[0] && oneRes.fileList[0].tempFileURL) {
-                avatarUrl = oneRes.fileList[0].tempFileURL
-              } else {
-                avatarUrl = raw
-              }
-            } catch (e2) {
-              console.error('获取报名人头像临时链接失败:', e2)
-              avatarUrl = raw
-            }
-          }
-          return { userId: p.userId, nickName: p.nickName, avatarUrl: avatarUrl || '' }
-        }))
       } catch (e) {
         console.error('获取报名信息失败:', e)
       }
+
       withCount.push({
         ...a,
         currentCount,
-        participants: participantsWithUrl.length > 0 ? participantsWithUrl : participants,
-        hostAvatar: hostAvatarUrl != null ? hostAvatarUrl : hostAvatar,
-        hostName
+        participants,
+        hostAvatar: hostAvatar !== null ? hostAvatar : (a.hostAvatar || null),
+        hostName: hostName || a.hostName || null
       })
     }
     return { list: withCount }

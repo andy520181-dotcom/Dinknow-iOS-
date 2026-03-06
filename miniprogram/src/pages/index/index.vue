@@ -30,8 +30,8 @@
         <view class="sort-tabs">
           <!-- 城市入口 -->
           <view class="city-btn" @tap="handleCitySelect">
-            <text class="city-btn-icon">📍</text>
             <text class="city-btn-name">{{ currentCity || '定位中' }}</text>
+            <text class="city-btn-chevron">›</text>
           </view>
           <view class="sort-tab-divider" />
           <view
@@ -386,14 +386,15 @@ async function loadActivities(silent = false) {
       const old = prevList.find((a: Activity) => a._id === act._id)
       if (!old) return act
       const out = { ...act }
-      const keepHost = old.hostAvatar && (String(old.hostAvatar).startsWith('http') || String(old.hostAvatar).startsWith('cloud://'))
-      out.hostAvatar = keepHost ? old.hostAvatar : (act.hostAvatar ?? old.hostAvatar)
+      // NOTE: 新头像有效（API 返回了最新值）时用新的，允许头像变更生效；
+      // 新头像无效时保留旧的，防止空值闪烁
+      const isValidUrl = (v: any) => v && (String(v).startsWith('http') || String(v).startsWith('cloud://'))
+      out.hostAvatar = isValidUrl(act.hostAvatar) ? act.hostAvatar : (old.hostAvatar || act.hostAvatar)
       if (Array.isArray(act.participants)) {
         const oldParts = Array.isArray(old.participants) ? old.participants : []
         out.participants = act.participants.map((p: { userId?: string; avatarUrl?: string; nickName?: string }) => {
           const op = oldParts.find((x: { userId?: string }) => x.userId === p.userId)
-          const keepUrl = op?.avatarUrl && (String(op.avatarUrl).startsWith('http') || String(op.avatarUrl).startsWith('cloud://'))
-          return { ...p, avatarUrl: (op && keepUrl) ? op.avatarUrl : (p.avatarUrl ?? op?.avatarUrl) }
+          return { ...p, avatarUrl: isValidUrl(p.avatarUrl) ? p.avatarUrl : (op?.avatarUrl || p.avatarUrl) }
         })
       }
       return out
@@ -898,7 +899,7 @@ onShareTimeline(() => {
   padding-top: calc(#{$ios-spacing-md} + env(safe-area-inset-top));
 }
 
-// NOTE: 排序切换标签行：搜索栏下方，左对齐两个 tab
+// NOTE: 排序切换标签行：搜索栏下方，左对齐两个 tab；align-items:center 保证三者水平中心线对齐
 .sort-tabs {
   display: flex;
   align-items: center;
@@ -910,6 +911,9 @@ onShareTimeline(() => {
   padding: 4px 0;
   position: relative;
   cursor: pointer;
+  // NOTE: flex 对齐保证内部文字与 city-btn 文字基线一致
+  display: flex;
+  align-items: center;
 
   &--active .sort-tab-text {
     color: $ios-blue;
@@ -944,29 +948,33 @@ onShareTimeline(() => {
   flex-shrink: 0;
 }
 
-// NOTE: 城市按钮：左侧定位图标 + 城市名 + 隐式箭头，与排序标签视觉统一
+// NOTE: 城市按钮：城市名 + 细箭头，无图标，与右侧排序标签视觉完全统一
 .city-btn {
   display: flex;
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
   cursor: pointer;
+  padding: 4px 0;
   &:active { opacity: 0.6; }
-}
-
-.city-btn-icon {
-  font-size: 12px;
-  line-height: 1;
 }
 
 .city-btn-name {
   font-size: 12px;
   color: $ios-text-secondary;
   line-height: 1.4;
-  max-width: 60px;
+  max-width: 64px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+// NOTE: 细箭头 › 与城市名同字号，避免撑高容器影响整行垂直对齐
+.city-btn-chevron {
+  font-size: 12px;
+  color: $ios-text-tertiary;
+  line-height: 1.4;
+  flex-shrink: 0;
 }
 
 // 三段式一体胶囊（全宽）
@@ -1082,6 +1090,18 @@ onShareTimeline(() => {
   }
 }
 
+// NOTE: 筛选文字，默认次级色，有筛选激活时变蓝
+.capsule-filter-text {
+  font-size: 15px;
+  font-weight: $ios-font-weight-medium;
+  color: $ios-text-secondary;
+  line-height: 1;
+
+  .capsule-filter--active & {
+    color: $ios-blue;
+  }
+}
+
 // ── 筛选面板遮罩（全屏，覆盖 tab bar）──────────────────────
 .filter-overlay {
   position: fixed;
@@ -1129,11 +1149,9 @@ onShareTimeline(() => {
 }
 
 .filter-section-title {
-  font-size: 12px;
+  font-size: $ios-font-size-md;
   font-weight: $ios-font-weight-semibold;
-  color: $ios-text-tertiary;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: $ios-text-primary;
   display: block;
   margin-bottom: 10px;
 }
@@ -1240,7 +1258,11 @@ onShareTimeline(() => {
 }
 
 .activity-list {
-  padding: $ios-spacing-lg;
+  // NOTE: flex column + gap 统一控制卡片间距，不依赖卡片自身 margin
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px $ios-spacing-lg;
 }
 
 .empty {
@@ -1248,5 +1270,90 @@ onShareTimeline(() => {
   text-align: center;
   color: $ios-text-tertiary;
   font-size: $ios-font-size-md;
+}
+
+// ── 骨架屏样式 ─────────────────────────────────────────
+// NOTE: shimmer 是从左到右扫过的光泽效果，比纯灰色 pulse 更有质感
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+// NOTE: 骨架元素共用这个 mixin：渐变扫光覆盖在灰色底上
+%skeleton-base {
+  background: linear-gradient(
+    90deg,
+    #E5E5EA 25%,
+    #F0F0F5 50%,
+    #E5E5EA 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+
+.skeleton-card {
+  background: #ffffff;
+  border-radius: $ios-radius-lg;
+  padding: $ios-spacing-lg;
+  box-shadow: $ios-shadow-md;
+}
+
+// 上段：头像圆 + 文字列横排
+.skeleton-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+// NOTE: 尺寸与 .host-avatar-wrap（60px）一致
+.skeleton-avatar {
+  @extend %skeleton-base;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.skeleton-line {
+  @extend %skeleton-base;
+  height: 14px;
+
+  // NOTE: 各行宽度模拟真实内容宽度分布
+  &--title { width: 70%; height: 16px; }
+  &--sub   { width: 55%; height: 12px; }
+  &--tag   { width: 40%; height: 12px; }
+  &--nick  { width: 30%; height: 10px; margin-top: 6px; }
+}
+
+.skeleton-divider {
+  height: 0.5px;
+  background: rgba(0, 0, 0, 0.06);
+  margin: 10px 0 8px;
+}
+
+// 底部参与者头像行
+.skeleton-footer {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+}
+
+// NOTE: 尺寸与 .participant-avatar-wrap（56px）一致
+.skeleton-participant {
+  @extend %skeleton-base;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 </style>
