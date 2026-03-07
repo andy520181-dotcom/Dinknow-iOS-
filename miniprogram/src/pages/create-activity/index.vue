@@ -893,7 +893,10 @@ async function handleSubmit() {
   if (!editingActivityId.value) {
     await new Promise<void>(resolve => {
       uni.requestSubscribeMessage({
-        tmplIds: ['53-eN2jMxIxsMvxl7FOspewFtigQ6MKb0tedLxY6g18'], // 报名成功通知
+        tmplIds: [
+          '53-eN2jMxIxsMvxl7FOspewFtigQ6MKb0tedLxY6g18', // 报名成功通知（有人报名）
+          'Xj24M5_YdfmnpSpwNGI69w__rcm63e8EBE5fgLYWY2k', // 取消报名通知（有人退出）
+        ],
         complete: () => resolve()
       })
     })

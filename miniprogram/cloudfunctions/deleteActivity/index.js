@@ -2,6 +2,9 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
+// NOTE: 活动取消通知模板（删除活动等同取消）
+const TMPL_CANCEL_ACT = 'aiot1Xyg2C0SOU8vDww1hCop-VGNgHgHM5WP1yR5D30'
+
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID
@@ -23,11 +26,44 @@ exports.main = async (event, context) => {
       return { success: false, message: '无权删除此活动' }
     }
 
-    // 检查是否有已报名用户（可选：如果有报名用户，可以提示或阻止删除）
-    const regRes = await db.collection('registrations').where({ activityId, status: 'joined' }).count()
-    if (regRes.total > 0) {
-      // 可以选择阻止删除，或者允许删除但提示
-      // 这里选择允许删除，但会同时删除所有报名记录
+    // 查询已报名用户
+    const regRes = await db.collection('registrations').where({ activityId, status: 'joined' }).get()
+    const participants = (regRes.data || []).filter(r => r.userId !== openid)
+
+    // NOTE: 删除前先推送「活动取消通知」给所有报名者
+    if (participants.length > 0) {
+      // 获取发起人昵称（name4 字段）
+      let hostName = '发起人'
+      try {
+        const hostRes = await db.collection('users').where({ openid }).get()
+        hostName = (hostRes.data?.[0]?.nickName || hostRes.data?.[0]?.nickname || '发起人').slice(0, 10)
+      } catch (_) { }
+
+      const actTitle = (activity.title || '').slice(0, 20)
+      const actDateStr = (activity.startDate || '').slice(0, 20)
+      const actVenue = (activity.venueName || activity.address || '—').slice(0, 20)
+
+      await Promise.all(participants.map(r =>
+        cloud.callFunction({
+          name: 'sendSubscribeMsg',
+          data: {
+            touser: r.userId,
+            templateId: TMPL_CANCEL_ACT,
+            page: 'pages/index/index',
+            data: {
+              thing1: { value: actTitle },
+              date2: { value: actDateStr },
+              thing3: { value: actVenue },
+              name4: { value: hostName },
+              thing11: { value: '活动已取消，期待下次见' }
+            }
+          }
+        }).catch(e => console.error('[deleteActivity] 推送取消通知失败:', r.userId, e))
+      ))
+    }
+
+    // 删除所有报名记录
+    if (regRes.data && regRes.data.length > 0) {
       await db.collection('registrations').where({ activityId }).remove()
     }
 
@@ -40,3 +76,4 @@ exports.main = async (event, context) => {
     return { success: false, message: '删除失败' }
   }
 }
+

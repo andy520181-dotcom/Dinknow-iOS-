@@ -59,6 +59,26 @@ exports.main = async (event, context) => {
           leftAt: null // 清除退出时间
         }
       })
+      // NOTE: 重新报名同样推送通知给报名者和发起人
+      const TMPL = '53-eN2jMxIxsMvxl7FOspewFtigQ6MKb0tedLxY6g18'
+      const dtStr = [activity.startDate, activity.startTime].filter(Boolean).join(' ').slice(0, 20)
+      const venue = (activity.venueName || activity.address || '—').slice(0, 20)
+      const jName = (currentUser.nickName || currentUser.nickname || '匹克球友').slice(0, 20)
+      const mData = {
+        thing2: { value: (activity.title || '').slice(0, 20) },
+        date4: { value: dtStr },
+        thing5: { value: venue },
+        phrase8: { value: '报名成功' },
+        thing23: { value: jName }
+      }
+      const pg = `pages/activity-detail/index?id=${activityId}`
+      const resends = [
+        cloud.callFunction({ name: 'sendSubscribeMsg', data: { touser: openid, templateId: TMPL, page: pg, data: mData } }).catch(() => { })
+      ]
+      if (hostId && hostId !== openid) {
+        resends.push(cloud.callFunction({ name: 'sendSubscribeMsg', data: { touser: hostId, templateId: TMPL, page: pg, data: mData } }).catch(() => { }))
+      }
+      await Promise.all(resends)
       return { success: true, message: '重新报名成功' }
     }
 
