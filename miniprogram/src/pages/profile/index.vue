@@ -39,7 +39,7 @@
 
         <!-- 协议勾选行 -->
         <view class="login-terms-row">
-          <view class="login-terms-cb-wrap" @tap="agreedToTerms = !agreedToTerms">
+          <view class="login-terms-cb-wrap" @tap="toggleAgreedToTerms">
             <view
               class="login-terms-checkbox"
               :class="{ 'login-terms-checkbox--checked': agreedToTerms }"
@@ -57,14 +57,14 @@
 
         <!-- ── 顶部居中头像区 ── -->
         <view class="profile-hero">
+          <!-- NOTE: 右上角「编辑资料」标签，独立可点击跳转设置页 -->
+          <view class="profile-edit-badge" @tap.stop="goToSettings">
+              <text class="profile-edit-badge-text">编辑资料</text>
+          </view>
           <view class="profile-avatar-wrap">
-            <button
-              class="profile-avatar-circle"
-              open-type="chooseAvatar"
-              @chooseavatar="onChooseAvatar"
-            >
+            <view class="profile-avatar-circle">
               <image
-                v-if="avatarUrl"
+                v-if="resolvedAvatarUrl"
                 class="profile-avatar"
                 :src="resolvedAvatarUrl"
                 mode="aspectFill"
@@ -72,9 +72,6 @@
               <view v-else class="profile-avatar profile-avatar--placeholder">
                 <text class="profile-avatar-icon">👤</text>
               </view>
-            </button>
-            <view class="profile-edit-dot">
-              <image class="profile-edit-dot-icon" src="/static/icons/edit-avatar.png" mode="aspectFit" />
             </view>
           </view>
           <text class="profile-hero-name">{{ nickName || '匹克球友' }}</text>
@@ -95,79 +92,17 @@
           </view>
         </view>
 
-        <!-- ── 基本资料分区（含 DUPR 水平、球风）── -->
-        <view class="ios-section">
-          <view class="ios-cell" @tap="openNicknameEdit">
-            <image class="ios-cell__row-icon" src="/static/icons/nicheng.png" mode="aspectFit" />
-            <text class="ios-cell__label">昵称</text>
-            <text :class="nickName ? 'ios-cell__value' : 'ios-cell__value ios-cell__placeholder'">{{ nickName || '请输入' }}</text>
-            <text class="ios-cell__chevron">›</text>
-          </view>
-          <view class="ios-cell" @tap="openGenderEdit">
-            <image class="ios-cell__row-icon" src="/static/icons/xingbie.png" mode="aspectFit" />
-            <text class="ios-cell__label">性别</text>
-            <text :class="genderSet ? 'ios-cell__value' : 'ios-cell__value ios-cell__placeholder'">{{ genderText }}</text>
-            <text class="ios-cell__chevron">›</text>
-          </view>
-          <view class="ios-cell" @tap="openRegionEdit">
-            <image class="ios-cell__row-icon" src="/static/icons/diqu.png" mode="aspectFit" />
-            <text class="ios-cell__label">地区</text>
-            <text :class="region ? 'ios-cell__value' : 'ios-cell__value ios-cell__placeholder'">{{ region || '请选择' }}</text>
-            <text class="ios-cell__chevron">›</text>
-          </view>
-          <!-- DUPR 水平 -->
-          <view class="ios-cell ios-cell--tap">
-            <image class="ios-cell__row-icon" src="/static/icons/dupr.png" mode="aspectFit" />
-            <text class="ios-cell__label">DUPR 水平</text>
-            <view class="ios-cell__value ios-cell__value--right">
-              <picker
-                mode="selector"
-                :range="duprOptions"
-                :value="duprIndex"
-                @change="onDuprChange"
-              >
-                <text :class="duprLevel ? 'ios-picker-text' : 'ios-cell__placeholder'">
-                  {{ duprLevel || '请选择' }}
-                </text>
-              </picker>
-            </view>
-            <text class="ios-cell__chevron">›</text>
-          </view>
-          <view class="ios-cell" @tap="openSignatureEdit">
-            <image class="ios-cell__row-icon" src="/static/icons/qiufeng.png" mode="aspectFit" />
-            <text class="ios-cell__label">球风</text>
-            <text :class="signature ? 'ios-cell__value ios-cell__value--ellipsis' : 'ios-cell__value ios-cell__value--ellipsis ios-cell__placeholder'">{{ signature || '请填写' }}</text>
-            <text class="ios-cell__chevron">›</text>
-          </view>
-        </view>
+        <!-- ── 活动日历 ── -->
+        <ActivityCalendar
+          :joined-activities="myJoined"
+          :created-activities="myCreated"
+        />
 
         <!-- ── 退出登录按钮 ── -->
         <view class="logout-btn" @tap="handleLogout">
           <text class="logout-btn-text">退出登录</text>
         </view>
-        <!-- 底部：联系客服 + 版本号 -->
-        <view class="app-footer-row">
-          <button class="contact-btn" open-type="contact">联系客服</button>
-          <text class="app-footer-dot">·</text>
-          <text class="app-version">{{ appVersion }}</text>
-        </view>
 
-      </view>
-    </view>
-
-    <!-- 选项 Action Sheet：单块白色面板从屏幕底部弹出 -->
-    <view v-if="showPickerModal" class="action-sheet-mask" @tap="closePickerModal">
-      <view class="action-sheet" @tap.stop>
-        <template v-for="(item, index) in currentPickerOptions" :key="item">
-          <view class="action-sheet-item" @tap="selectPickerOption(item)">
-            <text class="action-sheet-item-text">{{ item }}</text>
-          </view>
-          <!-- NOTE: 最后一个选项后不加 sep，取消按钮用 margin-top 成为独立模块 -->
-          <view v-if="index < currentPickerOptions.length - 1" class="action-sheet-sep" />
-        </template>
-        <view class="action-sheet-item action-sheet-item--cancel" @tap="closePickerModal">
-          <text class="action-sheet-item-text action-sheet-item-text--cancel">取消</text>
-        </view>
       </view>
     </view>
   </view>
@@ -176,10 +111,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { login, getProfile, updateProfile, checkLogin, bindPhone } from '../../services/user'
-import { getCloudImageUrl, clearCloudUrlCache, getTempFileURLs, callCloudFunction } from '../../services/cloud'
+import { login, getProfile, bindPhone } from '../../services/user'
+import { clearCloudUrlCache, getTempFileURLs } from '../../services/cloud'
 import { getUserActivities } from '../../services/activity'
 import type { User, Activity } from '../../types'
+import ActivityCalendar from '../../components/ActivityCalendar.vue'
 
 // NOTE: 自动读取微信后台版本号，正式版返回真实版本，开发/体验版返回空字符串
 const appVersion = (() => {
@@ -195,22 +131,12 @@ const appVersion = (() => {
   return 'Dinknow'
 })()
 
-const genderOptions = ['保密', '男', '女']
-const duprOptions = ['初级 1.0-2.5', '中级 3.0-3.5', '高级 4.0-4.5', '专业级 5.0+']
-
-// NOTE: duprIndex 计算当前选中项索引，与发起活动页保持一致
-const duprIndex = computed(() => {
-  if (!duprLevel.value) return 0
-  const idx = duprOptions.indexOf(duprLevel.value)
-  return idx >= 0 ? idx : 0
-})
-
 const user = ref<User | null>(null)
 const nickName = ref('')
 const avatarUrl = ref('')
+const duprLevel = ref('')
 
-// NOTE: profile 页头像 cloud:// → https:// 缓存映射。
-// uni-app 不支持 cloud:// 直接作为 image src，必须转换。
+// NOTE: profile 页头像 cloud:// → https:// 缓存映射
 const profileCloudUrlMap = ref<Record<string, string>>({})
 
 // NOTE: 经过缓存解析的头像 URL，同一 cloud:// 永远返回同一 https:// 字符串
@@ -218,18 +144,15 @@ const resolvedAvatarUrl = computed(() => {
   const url = avatarUrl.value
   if (!url) return ''
   if (url.startsWith('https://') || url.startsWith('http://')) return url
-  // NOTE: 二次防御：如果缓存中存的是 cloud:// fallback，不返回它
   const cached = profileCloudUrlMap.value[url]
   if (cached && (cached.startsWith('https://') || cached.startsWith('http://'))) return cached
   return ''
 })
 
-// NOTE: avatarUrl 变化时，如果是 cloud://，就解析为 https://
 watch(avatarUrl, async (val: string) => {
   if (val && val.startsWith('cloud://') && !profileCloudUrlMap.value[val]) {
     try {
       const urlMap = await getTempFileURLs([val])
-      // NOTE: 只存储 http(s) URL，过滤 cloud:// fallback
       const v = urlMap[val]
       if (v && (v.startsWith('https://') || v.startsWith('http://'))) {
         profileCloudUrlMap.value = { ...profileCloudUrlMap.value, [val]: v }
@@ -237,24 +160,14 @@ watch(avatarUrl, async (val: string) => {
     } catch {}
   }
 }, { immediate: true })
-const gender = ref<0 | 1 | 2>(0)
-// NOTE: genderSet 为 true 表示用户已主动设置过性别，未设置时占位文案显示「请选择」
-const genderSet = ref(false)
-const duprLevel = ref('')
-const region = ref('')
-const signature = ref('')
 
 const myCreated = ref<Activity[]>([])
 const myJoined = ref<Activity[]>([])
 
 const saving = ref(false)
 
-
-
-// NOTE: 使用独立的 is_logged_in 布尔标记判断登录态，取代 phone/nickName 字段猜测方式。
-// 优势：同步、精确、无歧义；登录成功时写 true，退出时写 false，无需解析业务字段。
+// NOTE: 使用独立的 is_logged_in 布尔标记判断登录态
 const _isLoggedIn = uni.getStorageSync('is_logged_in') === true
-const _explicitlyLoggedOut = uni.getStorageSync('explicitly_logged_out')
 
 const isLoggedIn = ref(!!_isLoggedIn)
 // NOTE: profileChecking 仅在「未主动退出 + 未知登录态」时为 true（空白遮罩）。
@@ -263,6 +176,9 @@ const isLoggedIn = ref(!!_isLoggedIn)
 // 首次安装（is_logged_in 不存在）→ profileChecking=true，等网络验证后揭开遮罩。
 const profileChecking = ref(false) // NOTE: is_logged_in 标记已能同步确定登录态，无需過渡遮罩
 const agreedToTerms = ref(false)
+/** 切换协议同意状态，避免模板内直接 ref 赋值触发 uni-app crash */
+function toggleAgreedToTerms() { agreedToTerms.value = !agreedToTerms.value }
+
 
 /** 点击登录按钮时若未勾选协议，给出提示 */
 function onLoginBtnTap() {
@@ -303,13 +219,7 @@ async function checkLoginStatus() {
       user.value = cachedProfile
       nickName.value = cachedProfile.nickName || ''
       avatarUrl.value = cachedProfile.avatarUrl || ''
-      if (typeof cachedProfile.gender === 'number' && cachedProfile.gender > 0) {
-        gender.value = cachedProfile.gender as 0 | 1 | 2
-        genderSet.value = true
-      }
       duprLevel.value = cachedProfile.duprLevel || ''
-      region.value = cachedProfile.region || ''
-      signature.value = cachedProfile.signature || ''
     }
     loadProfileAndActivities()
     return
@@ -362,75 +272,6 @@ async function onGetPhoneNumber(e: any) {
   }
 }
 
-// NOTE: 微信官方 open-type=chooseAvatar 回调
-// 上传策略：优先走 COS 预签名直传（永久 CDN URL，HTTP 缓存友好）；若 COS 未配置则 fallback 到云开发存储
-async function onChooseAvatar(e: any) {
-  const tempPath = e?.detail?.avatarUrl
-  if (!tempPath) return
-  uni.showLoading({ title: '上传中...' })
-  try {
-    // #ifdef MP-WEIXIN
-    // NOTE: 构造存储路径：avatars/{openid}_{timestamp}.jpg，openid 作为前缀避免文件名冲突
-    const openid = user.value?.openid || 'unknown'
-    const cosKey = `avatars/${openid}_${Date.now()}.jpg`
-
-    let uploaded = false
-
-    // NOTE: 优先走 COS 预签名直传；独立 try-catch 确保失败时 fallback 不被跳过
-    try {
-      const cosRes: any = await callCloudFunction('uploadToCOS', { fileName: cosKey, fileType: 'image/jpeg' })
-      if (cosRes?.success && cosRes.uploadUrl) {
-        await new Promise<void>((resolve, reject) => {
-          uni.request({
-            url: cosRes.uploadUrl,
-            method: 'PUT',
-            data: uni.getFileSystemManager().readFileSync(tempPath),
-            header: { 'Content-Type': 'image/jpeg' },
-            success: (res) => {
-              if (res.statusCode >= 200 && res.statusCode < 300) resolve()
-              else reject(new Error(`COS PUT 失败: ${res.statusCode}`))
-            },
-            fail: reject
-          })
-        })
-        avatarUrl.value = cosRes.cdnUrl
-        uploaded = true
-      }
-    } catch (cosErr) {
-      console.warn('[onChooseAvatar] COS 上传失败，降级到 wx.cloud:', cosErr)
-    }
-
-    // NOTE: COS 失败或未配置时降级到云开发存储
-    if (!uploaded) {
-      const cloudPath = `avatars/${Date.now()}-wechat.jpg`
-      const uploadRes = await (wx as any).cloud.uploadFile({ cloudPath, filePath: tempPath })
-      avatarUrl.value = uploadRes.fileID
-    }
-
-    await saveProfile()
-    // #endif
-  } catch (err) {
-    console.error('头像上传失败:', err)
-    uni.showToast({ title: '上传失败，请重试', icon: 'none' })
-  } finally {
-    uni.hideLoading()
-  }
-}
-
-// 文本编辑弹窗（昵称 / 球风）
-const showTextModal = ref(false)
-const textModalTitle = ref('')
-const textModalType = ref<'nickname' | 'signature'>('nickname')
-const textModalValue = ref('')
-
-// 选项弹窗（性别 / 地区 / DUPR）
-const showPickerModal = ref(false)
-const pickerModalTitle = ref('')
-const pickerType = ref<'gender' | 'region' | 'dupr'>('gender')
-const currentPickerOptions = ref<string[]>([])
-
-// NOTE: 性别展示文字：未设置时显示「请选择」占位，已设置显示实际选项
-const genderText = computed(() => genderSet.value ? (genderOptions[gender.value] || '保密') : '请选择')
 
 async function loadProfileAndActivities() {
   try {
@@ -441,16 +282,8 @@ async function loadProfileAndActivities() {
       if (profile) {
         user.value = profile
         nickName.value = profile.nickName || ''
-        // NOTE: cloud:// fileID 转换为可访问的 HTTP 临时 URL，避免渲染层网络错误
         avatarUrl.value = profile.avatarUrl || ''
-        // NOTE: gender > 0（男/女）才算用户主动设置过；gender === 0 是默认值，仍显示「请选择」
-        if (typeof profile.gender === 'number' && profile.gender > 0) {
-          gender.value = profile.gender as 0 | 1 | 2
-          genderSet.value = true
-        }
         duprLevel.value = profile.duprLevel || ''
-        region.value = (profile as any).region || ''
-        signature.value = (profile as any).signature || ''
         // NOTE: 缓存 profile 到本地，下次进入时可立即跳过白屏
         try { uni.setStorageSync('cached_profile', profile) } catch {}
       }
@@ -458,6 +291,8 @@ async function loadProfileAndActivities() {
     const activities = await getUserActivities()
     myCreated.value = Array.isArray(activities.created) ? activities.created : []
     myJoined.value = Array.isArray(activities.joined) ? activities.joined : []
+    // NOTE: 缓存用户活动列表，供活动详情页的报名时间冲突检测使用（读本地缓存，无需额外网络请求）
+    try { uni.setStorageSync('cached_user_activities', { created: myCreated.value, joined: myJoined.value }) } catch {}
   } catch (e) {
     console.error('加载个人信息失败', e)
     uni.showToast({ title: '加载失败', icon: 'none' })
@@ -470,132 +305,16 @@ async function refreshActivities() {
     const activities = await getUserActivities()
     myCreated.value = Array.isArray(activities.created) ? activities.created : []
     myJoined.value = Array.isArray(activities.joined) ? activities.joined : []
+    // NOTE: 同步更新冲突检测缓存
+    try { uni.setStorageSync('cached_user_activities', { created: myCreated.value, joined: myJoined.value }) } catch {}
   } catch (e) {
     console.error('刷新活动场次失败', e)
   }
 }
 
-function handleChooseAvatar() {
-  uni.chooseImage({
-    count: 1,
-    // NOTE: 必须用 original 原图，compressed 会导致头像模糊（原图可达 1000px+，compressed 仅 132px）
-    sizeType: ['original'],
-    sourceType: ['album', 'camera'],
-    success: async (res) => {
-      const path = res.tempFilePaths?.[0]
-      if (!path) return
-      try {
-        // #ifdef MP-WEIXIN
-        const cloudPath = `avatars/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-        const uploadRes = await wx.cloud.uploadFile({
-          cloudPath,
-          filePath: path
-        })
-        avatarUrl.value = uploadRes.fileID
-        await saveProfile()
-        // #endif
-      } catch (error) {
-        console.error('上传头像失败:', error)
-        uni.showToast({ title: '上传失败', icon: 'none' })
-      }
-    }
-  })
-}
-
-// NOTE: 头像选择通过 button open-type=chooseAvatar 直接处理，此函数保留但不再使用
-function openEditPanel() {}
-
-function openNicknameEdit() {
-  // NOTE: 跳转到独立编辑页，传递当前昵称作为预充内容
-  uni.navigateTo({
-    url: `/pages/edit-text-field/index?type=nickname&value=${encodeURIComponent(nickName.value)}`
-  })
-}
-
-function openSignatureEdit() {
-  // NOTE: 跳转到独立编辑页，传递当前球风作为预充内容
-  uni.navigateTo({
-    url: `/pages/edit-text-field/index?type=signature&value=${encodeURIComponent(signature.value)}`
-  })
-}
-
-function openGenderEdit() {
-  pickerModalTitle.value = '选择性别'
-  pickerType.value = 'gender'
-  currentPickerOptions.value = genderOptions
-  showPickerModal.value = true
-  // NOTE: 隐藏原生 tab bar，使 action sheet 能完整覆盖底部
-  // #ifdef MP-WEIXIN
-  ;(wx as any).hideTabBar()
-  // #endif
-}
-
-function openRegionEdit() {
-  // NOTE: 复用广场页城市选择器，fromProfile=true 时选结果写入 profile_region storage
-  uni.navigateTo({
-    url: `/pages/city-select/index?from=profile&currentCity=${encodeURIComponent(region.value || '')}`
-  })
-}
-
-function openDuprEdit() {
-  // NOTE: DUPR 已改为内嵌 picker，此函数保留备用
-}
-
-function onDuprChange(e: any) {
-  // NOTE: 接收内嵌 picker 的选择结果，直接保存
-  const idx = Number(e?.detail?.value ?? 0)
-  duprLevel.value = duprOptions[idx] ?? ''
-  saveProfile()
-}
-
-async function selectPickerOption(value: string) {
-  if (pickerType.value === 'gender') {
-    const idx = genderOptions.indexOf(value)
-    gender.value = (idx >= 0 ? idx : 0) as 0 | 1 | 2
-    genderSet.value = true // NOTE: 用户主动选择后标记为已设置
-  } else if (pickerType.value === 'region') {
-    region.value = value
-  } else if (pickerType.value === 'dupr') {
-    duprLevel.value = value
-  }
-  showPickerModal.value = false
-  // #ifdef MP-WEIXIN
-  ;(wx as any).showTabBar()
-  // #endif
-  await saveProfile()
-}
-
-function closePickerModal() {
-  showPickerModal.value = false
-  // NOTE: 恢复原生 tab bar 显示
-  // #ifdef MP-WEIXIN
-  ;(wx as any).showTabBar()
-  // #endif
-}
-
-async function saveProfile() {
-  saving.value = true
-  try {
-    const result = await updateProfile({
-      nickName: nickName.value.trim() || '匹克球友',
-      avatarUrl: avatarUrl.value || user.value?.avatarUrl,
-      gender: gender.value,
-      duprLevel: duprLevel.value || '',
-      region: region.value || '',
-      signature: signature.value || ''
-    } as any)
-
-    if (result?.success === false) {
-      uni.showToast({ title: result.message || '保存失败', icon: 'none' })
-      return
-    }
-
-    uni.showToast({ title: '已保存', icon: 'success' })
-  } catch (error: any) {
-    uni.showToast({ title: error?.errMsg || error?.message || '保存失败', icon: 'none' })
-  } finally {
-    saving.value = false
-  }
+/** 跳转到个人设置页 */
+function goToSettings() {
+  uni.navigateTo({ url: '/pages/profile-settings/index' })
 }
 
 function goToMyActivities(type: 'joined' | 'created') {
@@ -614,22 +333,16 @@ function handleLogout() {
     success: (res) => {
       if (res.confirm) {
         uni.clearStorageSync()
-        // NOTE: clearStorage 之后再写标记；is_logged_in=false 确保下次打开直接走登录页，不会走网络验证
+        // NOTE: clearStorage 之后再写标记
         uni.setStorageSync('explicitly_logged_out', true)
         uni.setStorageSync('is_logged_in', false)
         clearCloudUrlCache()
         isLoggedIn.value = false
         nickName.value = ''
         avatarUrl.value = ''
-        // NOTE: 必须同步重置 gender 和 genderSet，否则退出后再登录会显示上一次选择的性别
-        gender.value = 0
-        genderSet.value = false
         duprLevel.value = ''
-        region.value = ''
-        signature.value = ''
         myJoined.value = []
         myCreated.value = []
-        // NOTE: 重置登录页协议勾选状态，恢复为初始未选中
         agreedToTerms.value = false
         uni.setNavigationBarTitle({ title: '登录' })
       }
@@ -640,29 +353,22 @@ function handleLogout() {
 onMounted(() => {
   // NOTE: 先检查登录状态，已登录则自动加载资料
   checkLoginStatus()
-  uni.$on('profileFieldSaved', async (data: { type: string; value: string }) => {
-    if (data.type === 'nickname') {
-      nickName.value = data.value
-    } else if (data.type === 'signature') {
-      signature.value = data.value
-    }
-    await saveProfile()
-  })
 })
 
-// NOTE: onShow 返回个人页时：未登录则重新检查（可能已在其他流程完成登录）；已登录则同步城市并刷新活动场次
+// NOTE: onShow 返回个人页时：刷新活动数据（报名/退出/创建/删除后实时同步）
+// 以及从设置页返回后同步最新 profile 昵称/头像
 onShow(() => {
   if (!isLoggedIn.value) {
     checkLoginStatus()
     return
   }
-  const saved = uni.getStorageSync('profile_region')
-  if (saved) {
-    region.value = saved
-    uni.removeStorageSync('profile_region')
-    saveProfile()
+  // NOTE: 从设置页返回时，重新读取缓存 profile 以刷新头像/昵称/dupr 展示
+  const cachedProfile = uni.getStorageSync('cached_profile')
+  if (cachedProfile) {
+    nickName.value = cachedProfile.nickName || nickName.value
+    avatarUrl.value = cachedProfile.avatarUrl || avatarUrl.value
+    duprLevel.value = cachedProfile.duprLevel || duprLevel.value
   }
-  // NOTE: 每次切回个人页都刷新场次，确保报名/退出/创建/删除后数计实时同步
   refreshActivities()
 })
 </script>
@@ -879,7 +585,11 @@ onShow(() => {
   padding: 32px 16px 24px;
   background: transparent;
   margin-bottom: 12px;
+  position: relative;
 }
+
+
+
 
 .profile-hero-name {
   font-size: 16px;
@@ -906,11 +616,28 @@ onShow(() => {
   font-weight: $ios-font-weight-regular;
 }
 
-// NOTE: wrapper 相对定位，承载编辑圆点
+// NOTE: 头像 wrap 相对定位，作为编辑标签绝对定位的锚点
 .profile-avatar-wrap {
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
+}
+
+// NOTE: 「编辑资料 ›」胶囊，绝对定位在 profile-hero 右上角
+.profile-edit-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.profile-edit-badge-text {
+  font-size: 12px;
+  color: $ios-text-tertiary;
+  letter-spacing: 0.3px;
 }
 
 // NOTE: 圆圈容器，overflow:hidden 裁切头像为圆形
@@ -1303,7 +1030,7 @@ onShow(() => {
 
 // ── 退出登录按钮 ──────────────────────────────────────────
 .logout-btn {
-  margin: 20px 16px 0;
+  margin: 12px 16px 0;
   background: #ffffff;
   border-radius: 14px;
   display: flex;

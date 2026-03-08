@@ -94,6 +94,15 @@
       "style": {
         "navigationBarTitleText": "隐私政策"
       }
+    },
+    {
+      "path": "pages/profile-settings/index",
+      "style": {
+        "navigationBarTitleText": "个人设置",
+        "navigationBarBackgroundColor": "#F5F5F5",
+        "navigationBarTextStyle": "black",
+        "backgroundColor": "#F5F5F5"
+      }
     }
   ],
   "globalStyle": {
@@ -105,28 +114,28 @@
   },
   "__usePrivacyCheck__": true,
   "tabBar": {
-    "color": "#333333",
-    "selectedColor": "#333333",
+    "color": "#999999",
+    "selectedColor": "#007AFF",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [
       {
         "pagePath": "pages/index/index",
         "text": "广场",
-        "iconPath": "static/tabbar/square.png",
-        "selectedIconPath": "static/tabbar/square-active.png"
+        "iconPath": "static/tabbar/guangchang.png",
+        "selectedIconPath": "static/tabbar/guangchang-active.png"
       },
       {
         "pagePath": "pages/create-activity/index",
         "text": "发起活动",
-        "iconPath": "static/tabbar/create.png",
-        "selectedIconPath": "static/tabbar/create-active.png"
+        "iconPath": "static/tabbar/faqihuodong.png",
+        "selectedIconPath": "static/tabbar/faqihuodong-active.png"
       },
       {
         "pagePath": "pages/profile/index",
         "text": "我",
-        "iconPath": "static/tabbar/profile.png",
-        "selectedIconPath": "static/tabbar/profile-active.png"
+        "iconPath": "static/tabbar/my.png",
+        "selectedIconPath": "static/tabbar/my-active.png"
       }
     ]
   }
