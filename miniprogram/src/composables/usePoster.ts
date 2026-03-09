@@ -147,15 +147,7 @@ export async function generatePoster(
     // 卡片固定高度 1400px
     const cardH = 1200
 
-    // ── 绘制卡片阴影 ──
-    ctx.setFillStyle('rgba(0, 0, 0, 0.04)')
-    roundRect(ctx, cardX + 6, cardY + 10, cardW, cardH, cardR)
-    ctx.fill()
-    ctx.setFillStyle('rgba(0, 0, 0, 0.02)')
-    roundRect(ctx, cardX + 3, cardY + 5, cardW, cardH, cardR)
-    ctx.fill()
-
-    // ── 白色卡片 ──
+    // ── 白色卡片（无阴影） ──
     ctx.setFillStyle('#FFFFFF')
     roundRect(ctx, cardX, cardY, cardW, cardH, cardR)
     ctx.fill()
