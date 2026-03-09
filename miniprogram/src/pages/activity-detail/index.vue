@@ -421,6 +421,8 @@ async function generateAndPreview() {
     const tempPath = await generatePoster(activity.value, dateTimeFullDisplay.value, feeTextDisplay.value, instance)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(wx as any).hideLoading()
+    // NOTE: 标记预览状态，onShow 读到此标记后跳过刷新，防止退出预览重载页面
+    isPreviewingImage.value = true
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(wx as any).previewImage({ current: tempPath, urls: [tempPath] })
   } catch (e) {
