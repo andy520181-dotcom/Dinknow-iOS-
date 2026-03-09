@@ -115,7 +115,7 @@ export async function generatePoster(
 
     ctx.setFontSize(28)
     ctx.setFillStyle('rgba(253, 248, 245, 0.75)')
-    ctx.fillText('匹克球搭子平台', W / 2, 170)
+    ctx.fillText('匹克球搭子社区', W / 2, 170)
 
     // ══════════════════════════════════════════
     // 3. 先计算卡片内容高度，再绘制卡片
@@ -212,7 +212,7 @@ export async function generatePoster(
     // 品牌说明
     ctx.setFillStyle('#999999')
     ctx.setFontSize(28)
-    ctx.fillText('Dinknow · 匹克球搭子平台', 80, bottomY + 80)
+    ctx.fillText('Dinknow · 匹克球搭子社区', 80, bottomY + 80)
 
     // ══════════════════════════════════════════
     // 5. 动态小程序码（右下角，与文字同排）
