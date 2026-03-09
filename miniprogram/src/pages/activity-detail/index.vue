@@ -368,25 +368,39 @@ async function generateAndSave() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(wx as any).hideLoading()
     console.log('[generateAndSave] tempPath=', tempPath)
-    // NOTE: wx.authorize 负责弹出授权弹框（首次）；
-    // 若 fail（微信内部缓存标记为拒绝但系统权限已开启），依然尝试直接保存，
-    // iOS 系统权限优先 → saveImageToPhotosAlbum 能成功；
-    // 只有 save 本身也失败，才确认引导用户去系统设置。
-    const doSave = () => {
+    // NOTE: 保存到相册，处理权限拒绝后重新授权
+    const doSave = (filePath: string) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(wx as any).saveImageToPhotosAlbum({
-        filePath: tempPath,
+        filePath,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         success: () => (wx as any).showToast({ title: '已保存到相册', icon: 'success' }),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         fail: (err: any) => {
           console.error('[saveImageToPhotosAlbum] 失败', err)
+          // NOTE: 保存失败 → 引导用户在微信设置页重新授权，授权后自动重试
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ;(wx as any).showModal({
-            title: '保存失败',
-            content: '请在手机「设置 → 微信 → 照片」将权限设为「完全访问」后重试',
-            confirmText: '知道了',
-            showCancel: false,
+            title: '需要相册权限',
+            content: '请允许访问相册以保存图片',
+            confirmText: '去设置',
+            cancelText: '取消',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            success: (res: any) => {
+              if (res.confirm) {
+                // NOTE: wx.openSetting 打开微信权限设置页，用户可重新授权
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ;(wx as any).openSetting({
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  success: (setting: any) => {
+                    if (setting.authSetting?.['scope.writePhotosAlbum']) {
+                      // 用户重新授权成功，自动重试保存
+                      doSave(filePath)
+                    }
+                  },
+                })
+              }
+            },
           })
         },
       })
@@ -394,9 +408,9 @@ async function generateAndSave() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(wx as any).authorize({
       scope: 'scope.writePhotosAlbum',
-      success: doSave,
-      // NOTE: 即使 authorize fail（微信缓存拒绝），只要系统授权也能保存
-      fail: doSave,
+      success: () => doSave(tempPath),
+      // NOTE: authorize 失败（微信缓存拒绝），直接尝试保存，iOS 系统权限可能已开启
+      fail: () => doSave(tempPath),
     })
   } catch (e) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
