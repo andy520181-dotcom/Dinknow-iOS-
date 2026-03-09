@@ -132,7 +132,8 @@ export async function generatePoster(
         { label: '时间', value: dateText },
         { label: '地点', value: activity.venueName || activity.address || '待定' },
         { label: '费用', value: feeText },
-        { label: '人数', value: `${(activity as any).participants?.length || 0} / ${activity.maxParticipants || '不限'}` },
+        // NOTE: 优先使用 currentCount（云函数返回的实际报名人数），其次用 participants.length
+        { label: '人数', value: `${activity.currentCount ?? (activity as any).participants?.length ?? 0} / ${activity.maxParticipants || '不限'}` },
         { label: '发起人', value: activity.hostName || '匹克球友' },
     ]
 
