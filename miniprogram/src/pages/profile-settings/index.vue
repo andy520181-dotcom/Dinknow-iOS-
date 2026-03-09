@@ -22,7 +22,7 @@
                   mode="aspectFill"
                 />
                 <view v-else class="avatar-preview avatar-preview--placeholder">
-                  <text class="avatar-preview-icon">👤</text>
+                  <image class="avatar-placeholder-img" src="/static/icons/touxiang.png" mode="aspectFit" />
                 </view>
               </button>
             </view>
@@ -183,6 +183,8 @@ const resolvedAvatarUrl = computed(() => {
   if (url.startsWith('https://') || url.startsWith('http://')) return url
   const cached = cloudUrlMap.value[url]
   if (cached && (cached.startsWith('https://') || cached.startsWith('http://'))) return cached
+  // NOTE: cloud:// 未解析期间直接返回原始 URL，小程序 image 组件原生支持 cloud://，避免闪烁
+  if (url.startsWith('cloud://')) return url
   return ''
 })
 
@@ -561,8 +563,10 @@ function handleLogout() {
   }
 }
 
-.avatar-preview-icon {
-  font-size: 20px;
+.avatar-placeholder-img {
+  width: 22px;
+  height: 22px;
+  opacity: 0.5;
 }
 
 // ── 性别 Action Sheet ──
