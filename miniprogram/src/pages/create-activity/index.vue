@@ -1172,8 +1172,8 @@ onShow(() => {
     to bottom,
     #7C4E3A 0%,
     #C9856A 18%,
-    rgba(253, 248, 245, 0.55) 36%,
-    #FDF8F5 46%
+    rgba(253, 248, 245, 0.55) 20%,
+    #FDF8F5 28%
   );
   display: flex;
   flex-direction: column;
