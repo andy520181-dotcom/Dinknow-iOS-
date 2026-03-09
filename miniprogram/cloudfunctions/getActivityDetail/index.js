@@ -88,9 +88,19 @@ exports.main = async (event, context) => {
     // 微信 <image> 原生支持 cloud:// 协议展示，URL 稳定不变
     const remarkImages = Array.isArray(activity.images) ? activity.images : []
 
+    // NOTE: 权限控制：只有「发起人」或「已报名用户」才能获取联系方式
+    // 在云函数层过滤，而非仅靠前端 v-if，防止数据泄露
+    const callerOpenid = cloud.getWXContext().OPENID
+    const isHost = callerOpenid === activity.hostId
+    const isParticipant = participants.some(p => p.userId === callerOpenid)
+    const canViewContact = isHost || isParticipant
+
     return {
       activity: {
         ...activity,
+        // NOTE: 未授权用户 contactInfo / contactType 返回 null，前端 v-if 兜底显示「报名成功后可见」
+        contactInfo: canViewContact ? (activity.contactInfo || null) : null,
+        contactType: canViewContact ? (activity.contactType || null) : null,
         images: remarkImages.length > 0 ? remarkImages : undefined,
         currentCount,
         participants,

@@ -6,8 +6,9 @@
     <view v-else-if="activity" class="activity-detail">
       <!-- 第一部分：按发起页顺序展示（发起人、标题、时间、地点、DUPR、人数、费用、联系方式、备注） -->
       <view class="detail-info-section">
-        <view class="detail-info-card">
-          <view class="detail-row detail-row--initiator" @tap="handleViewProfile(activity.hostId)">
+        <view class="detail-info-card detail-info-card--with-menu">
+          <!-- NOTE: 发起人行：左侧「发起人」标签 + 头像昵称，右侧分享按鈕自然对齐 -->
+          <view class="detail-row detail-row--initiator">
             <text class="detail-label">发起人</text>
             <view class="detail-value detail-value--initiator">
               <!-- NOTE: 始终显示占位灰圆，图片加载完成后淡入，避免 src 变化导致图片闪一下 -->
@@ -22,6 +23,10 @@
                 />
               </view>
               <text class="detail-initiator-name">{{ activity.hostName || '匹克球友' }}</text>
+            </view>
+            <!-- NOTE: 分享按鈕在行内锺右，自然与昵称文字水平对齐 -->
+            <view class="detail-more-btn" @tap.stop="showMoreMenu">
+              <image class="detail-more-icon" src="/static/icons/fenxiang.png" mode="aspectFit" />
             </view>
           </view>
           <view class="detail-row">
@@ -224,6 +229,28 @@
         </view>
       </view>
     </view>
+    <!-- NOTE: 三点按钮弹出自定义底部菜单，直接操作无需中间弹窗 -->
+    <view v-if="showMoreSheet" class="more-sheet-overlay" @tap="showMoreSheet = false">
+      <view class="more-sheet" @tap.stop>
+        <!-- NOTE: 保存图片 → 生成海报直接存相册 -->
+        <view class="more-sheet-item" @tap="generateAndSave">
+          <text class="more-sheet-item-text">{{ posterGenerating ? '处理中...' : '保存图片' }}</text>
+        </view>
+        <!-- NOTE: 生成海报 → previewImage 全屏预览，可长按保存/分享 -->
+        <view class="more-sheet-item" @tap="generateAndPreview">
+          <text class="more-sheet-item-text">{{ posterGenerating ? '生成中...' : '生成分享图片' }}</text>
+        </view>
+        <!-- NOTE: 分享到微信好友，必须用 open-type="share" 按钮 -->
+        <button class="more-sheet-item" open-type="share" @tap="showMoreSheet = false">
+          <text class="more-sheet-item-text">微信好友</text>
+        </button>
+        <view class="more-sheet-cancel" @tap="showMoreSheet = false">
+          <text class="more-sheet-cancel-text">取消</text>
+        </view>
+      </view>
+    </view>
+    <!-- NOTE: 隐藏画布，供 usePoster 绘制并导出海报图片 -->
+    <canvas canvas-id="posterCanvas" style="position:fixed;top:-9999px;left:-9999px;width:375px;height:600px;" />
   </view>
 </template>
 
@@ -236,6 +263,10 @@ import { getProfile, checkLogin } from '../../services/user'
 import { getCloudImageUrl, getTempFileURLs } from '../../services/cloud'
 import { isActivityEnded, parseActivityDate } from '../../utils/activity'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
+import PosterModal from '../../components/PosterModal.vue'
+// NOTE: 静态 import，微信小程序不支持动态 import()
+import { generatePoster } from '../../composables/usePoster'
+import { getCurrentInstance } from 'vue'
 
 const activityId = ref<string>('')
 const activity = ref<Activity | null>(null)
@@ -243,6 +274,12 @@ const loading = ref(true)
 // NOTE: 微信二维码图片加载完成标志，控制淡入动画
 const wechatQrImageLoaded = ref(false)
 const joining = ref(false)
+// NOTE: 控制海报弹窗显示（备用，已由 showMoreSheet 直接操作替代）
+const showPosterModal = ref(false)
+// NOTE: 控制三点底部菜单显示
+const showMoreSheet = ref(false)
+// NOTE: 海报生成中状态，防止重复点击
+const posterGenerating = ref(false)
 // NOTE: 报名前必须勾选免责声明，与发起活动页逻辑一致
 const disclaimerAccepted = ref(false)
 // NOTE: 预览图片期间标记为 true，onShow 读到此标记跳过刷新，避免关闭图片后无意义的全量重载
@@ -311,6 +348,92 @@ watch(
 function goToDisclaimer() {
   uni.navigateTo({ url: '/pages/disclaimer/index' })
 }
+
+// NOTE: 右上角三点按钮：直接显示自定义底部菜单（替代 wx.showActionSheet，支持 open-type 分享按钮）
+function showMoreMenu() {
+  showMoreSheet.value = true
+}
+
+// NOTE: 「保存图片」：后台静默生成海报，直接保存到相册，不弹预览弹窗
+async function generateAndSave() {
+  if (posterGenerating.value || !activity.value) return
+  showMoreSheet.value = false
+  posterGenerating.value = true
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(wx as any).showLoading({ title: '生成中...' })
+  try {
+    // NOTE: 传入组件实例，uni.createCanvasContext 需要以此定位到隐藏 canvas
+    const instance = getCurrentInstance()
+    const tempPath = await generatePoster(activity.value, dateTimeFullDisplay.value, feeTextDisplay.value, instance)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(wx as any).hideLoading()
+    console.log('[generateAndSave] tempPath=', tempPath)
+    // NOTE: wx.authorize 负责弹出授权弹框（首次）；
+    // 若 fail（微信内部缓存标记为拒绝但系统权限已开启），依然尝试直接保存，
+    // iOS 系统权限优先 → saveImageToPhotosAlbum 能成功；
+    // 只有 save 本身也失败，才确认引导用户去系统设置。
+    const doSave = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(wx as any).saveImageToPhotosAlbum({
+        filePath: tempPath,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        success: () => (wx as any).showToast({ title: '已保存到相册', icon: 'success' }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        fail: (err: any) => {
+          console.error('[saveImageToPhotosAlbum] 失败', err)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(wx as any).showModal({
+            title: '保存失败',
+            content: '请在手机「设置 → 微信 → 照片」将权限设为「完全访问」后重试',
+            confirmText: '知道了',
+            showCancel: false,
+          })
+        },
+      })
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(wx as any).authorize({
+      scope: 'scope.writePhotosAlbum',
+      success: doSave,
+      // NOTE: 即使 authorize fail（微信缓存拒绝），只要系统授权也能保存
+      fail: doSave,
+    })
+  } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(wx as any).hideLoading()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(wx as any).showToast({ title: '生成失败，请重试', icon: 'none' })
+    console.error('[generateAndSave]', e)
+  } finally {
+    posterGenerating.value = false
+  }
+}
+
+// NOTE: 「生成分享图片」：生成海报后用 wx.previewImage 展示，用户可长按保存/分享
+async function generateAndPreview() {
+  if (posterGenerating.value || !activity.value) return
+  showMoreSheet.value = false
+  posterGenerating.value = true
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(wx as any).showLoading({ title: '生成中...' })
+  try {
+    const instance = getCurrentInstance()
+    const tempPath = await generatePoster(activity.value, dateTimeFullDisplay.value, feeTextDisplay.value, instance)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(wx as any).hideLoading()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(wx as any).previewImage({ current: tempPath, urls: [tempPath] })
+  } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(wx as any).hideLoading()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(wx as any).showToast({ title: '生成失败，请重试', icon: 'none' })
+    console.error('[generateAndPreview]', e)
+  } finally {
+    posterGenerating.value = false
+  }
+}
+
 const currentUser = ref<User | null>(null)
 const currentUserLoading = ref(false) // 当前用户信息加载状态
 const showProfileModal = ref(false)
@@ -509,6 +632,28 @@ onMounted(() => {
   uni.$on('activity-updated', handleActivityUpdated) // 编辑活动也刷新详情
   uni.$on('activity-deleted', handleActivityDeleted) // 删除活动时返回上一页
   uni.$on('avatar-updated', handleAvatarUpdated) // 个人页更新头像后同步发起人头像
+
+  // NOTE: 官方隐私授权监听 —— 当调用 saveImageToPhotosAlbum 等隐私接口时触发。
+  // 必须在此监听，否则 errno:112 会直接拒绝调用。
+  // 文档：https://developers.weixin.qq.com/miniprogram/dev/framework/user-privacy/PrivacyAuthorize.html
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(wx as any).onNeedPrivacyAuthorization?.((resolve: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(wx as any).showModal({
+      title: '隐私授权',
+      content: '我们需要访问您的相册以保存分享图片，请阅读并同意《隐私保护指引》',
+      confirmText: '同意',
+      cancelText: '拒绝',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      success: (res: any) => {
+        if (res.confirm) {
+          resolve({ buttonId: 'agree-btn', event: 'agree' })
+        } else {
+          resolve({ buttonId: 'disagree-btn', event: 'disagree' })
+        }
+      },
+    })
+  })
 })
 
 onUnmounted(() => {
@@ -690,11 +835,13 @@ async function loadActivityDetail(forceRefresh = false) {
       merged.hostSignature = detailAny.hostSignature
       const oldParticipants = prev?.participants || []
       // NOTE: 直接使用云函数返回的 participants，cloud:// 永远稳定，无需 keep-old
-      merged.participants = (detail.participants || []).map((p: Record<string, unknown>) => ({
-        ...p,
-        region: p.region,
-        signature: p.signature
-      }))
+      merged.participants = (detail.participants || []).map((p: Record<string, unknown>) => {
+        return {
+          ...p,
+          region: p.region,
+          signature: p.signature
+        }
+      })
       // 报名后立即刷新时，云端可能尚未写入新报名记录，导致 detail.participants 不含当前用户；保留乐观更新中的当前用户，避免 hasJoined 变 false 从而看不到联系方式
       const currentOpenid = getCurrentOpenid()
       if (currentOpenid) {
@@ -1738,6 +1885,97 @@ onShareTimeline(() => {
   font-size: 12px;
   color: $ios-blue;
   font-weight: $ios-font-weight-medium;
+}
+// NOTE: 底部「分享海报」入口条，任何时候均显示
+.share-poster-bar {
+  margin: 12px 16px 24px;
+  height: 48px;
+  border-radius: 24px;
+  border: 1px solid $ios-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &:active { opacity: 0.6; }
+}
+
+.share-poster-text {
+  font-size: 15px;
+  color: $ios-text-secondary;
+}
+
+
+.detail-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // NOTE: 在 flex row 内 margin-left: auto 自动推到最右侧，与昵称文字保持同一行水平基线
+  margin-left: auto;
+  padding: 4px;
+  &:active { opacity: 0.5; }
+}
+
+.detail-more-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.45;
+}
+
+// NOTE: 三点菜单底部弹出层
+.more-sheet-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-end;
+  z-index: 9999;
+}
+
+.more-sheet {
+  width: 100%;
+  background: #f7f7f7;
+  border-radius: 14px 14px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  overflow: hidden;
+}
+
+.more-sheet-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  background: #fff;
+  // NOTE: 与创建活动页卡片分隔线一致：0.5px 细线，低透明度黑色
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  margin: 0;
+  padding: 0;
+  // 覆盖 button 默认样式
+  border-radius: 0;
+  line-height: normal;
+  font-size: 17px;
+  color: $ios-text-primary;
+  &:active { background: #f5f5f5; }
+  &::after { border: none; }
+  &:last-of-type { border-bottom: none; }
+}
+
+.more-sheet-item-text {
+  font-size: 17px;
+  color: $ios-text-primary;
+}
+
+.more-sheet-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  background: #fff;
+  margin-top: 8px;
+  &:active { background: #f5f5f5; }
+}
+
+.more-sheet-cancel-text {
+  font-size: 17px;
+  color: $ios-text-secondary;
 }
 
 </style>

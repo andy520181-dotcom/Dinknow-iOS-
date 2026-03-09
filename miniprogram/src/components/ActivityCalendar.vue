@@ -80,18 +80,14 @@
         class="cal-event-card"
         @tap="goToDetail(item)"
       >
-        <!-- 左侧色条：蓝=参加 橙=发起 -->
-        <view
-          class="cal-event-card__bar"
-          :class="item._role === 'created' ? 'cal-event-card__bar--created' : 'cal-event-card__bar--joined'"
-        />
+
         <view class="cal-event-card__body">
           <view class="cal-event-card__top">
             <text class="cal-event-card__title" :numberOfLines="1">{{ item.title }}</text>
             <text
               class="cal-event-card__badge"
               :class="item._role === 'created' ? 'cal-event-card__badge--created' : 'cal-event-card__badge--joined'"
-            >{{ item._role === 'created' ? '我发起' : '已参加' }}</text>
+            >{{ item._role === 'created' ? '发起' : '参加' }}</text>
           </view>
           <view class="cal-event-card__meta">
             <text class="cal-event-card__time">{{ item.startTime }}{{ item.endTime ? ' - ' + item.endTime : '' }}</text>
@@ -445,18 +441,6 @@ function goToDetail(activity: ActivityWithRole) {
   }
 }
 
-.cal-event-card__bar {
-  width: 4px;
-  flex-shrink: 0;
-
-  &--joined {
-    background: #0A84FF;
-  }
-
-  &--created {
-    background: #FF9500;
-  }
-}
 
 .cal-event-card__body {
   flex: 1;
