@@ -362,6 +362,11 @@ async function generateAndSave() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(wx as any).showLoading({ title: '生成中...' })
   try {
+    // NOTE: 生成海报前先刷新最新数据，确保人数等信息实时准确
+    try {
+      const latest = await getActivityDetail(activityId.value)
+      if (latest) activity.value = latest as unknown as Activity
+    } catch { /* 刷新失败用当前数据 */ }
     // NOTE: 传入组件实例，uni.createCanvasContext 需要以此定位到隐藏 canvas
     const instance = getCurrentInstance()
     const tempPath = await generatePoster(activity.value, dateTimeFullDisplay.value, feeTextDisplay.value, instance)
@@ -417,6 +422,11 @@ async function generateAndPreview() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(wx as any).showLoading({ title: '生成中...' })
   try {
+    // NOTE: 生成海报前先刷新最新数据，确保人数等信息实时准确
+    try {
+      const latest = await getActivityDetail(activityId.value)
+      if (latest) activity.value = latest as unknown as Activity
+    } catch { /* 刷新失败用当前数据 */ }
     const instance = getCurrentInstance()
     const tempPath = await generatePoster(activity.value, dateTimeFullDisplay.value, feeTextDisplay.value, instance)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
