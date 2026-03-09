@@ -232,7 +232,8 @@ export async function generatePoster(
     try {
         console.log('[usePoster] 开始生成小程序码, activityId:', (activity as any)._id)
         const codeRes: any = await callCloudFunction('generateMiniCode', {
-            scene: (activity as any)._id || ''
+            scene: (activity as any)._id || '',
+            page: 'pages/activity-detail/index'
         })
         console.log('[usePoster] 云函数返回:', JSON.stringify(codeRes))
         if (codeRes?.success && codeRes.fileID) {

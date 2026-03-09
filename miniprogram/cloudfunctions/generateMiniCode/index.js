@@ -16,17 +16,15 @@ exports.main = async (event) => {
     const page = event.page || ''
 
     try {
-        // NOTE: 不传 page 则默认进入小程序首页；scene 会作为查询参数传入
-        const params = {
+        // NOTE: page 传入活动详情页路径，扫码直达对应活动
+        const result = await cloud.openapi.wxacode.getUnlimited({
             scene,
+            page: page || undefined,
             width: 280,
             // NOTE: 开发阶段用 trial（体验版）；正式发布后改回 release
             envVersion: 'trial',
             isHyaline: true
-        }
-        // 仅在 page 有值时才传，避免 invalid page 错误
-        if (page) params.page = page
-        const result = await cloud.openapi.wxacode.getUnlimited(params)
+        })
 
         if (!result.buffer) {
             return { success: false, error: 'empty buffer' }
