@@ -587,10 +587,9 @@ onShow(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  // NOTE: 品牌渐变 header，从可可棕到玫棕，底部圆角与内容区自然过渡
+  // NOTE: 背景透明，页面顶部渐变直接透出，无独立色块
   padding: 48px 16px 28px;
-  background: $brand-gradient;
-  border-radius: 0 0 24px 24px;
+  background: transparent;
   margin-bottom: 12px;
   position: relative;
 }
