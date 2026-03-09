@@ -380,8 +380,8 @@ onShow(() => {
 
 .login-brand-title {
   display: block;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 400;
   color: $ios-text-primary;
   margin-top: 20px;
   text-align: center;
