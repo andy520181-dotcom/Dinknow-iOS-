@@ -1813,12 +1813,13 @@ onShareTimeline(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $ios-blue;
+  background: $brand-accent;
   color: #fff;
   font-size: 16px;
   font-weight: $ios-font-weight-semibold;
   border-radius: $ios-radius-lg;
   border: none;
+  box-shadow: 0 4px 16px rgba(200, 107, 42, 0.30);
   transition: all 0.2s ease;
 
   &::after {

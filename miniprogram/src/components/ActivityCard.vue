@@ -882,13 +882,14 @@ async function handleJoinClick() {
   padding: 0 14px;
   height: 30px;
   min-height: 30px;
-  background: linear-gradient(135deg, #7C4E3A 0%, #C9856A 100%);
+  // NOTE: 焦糖橙点缀色，与可可棕主色形成暖系内活力对比，强化行动召唤
+  background: $brand-accent;
   color: #fff;
   font-size: 12px;
   font-weight: 400;
   border-radius: 15px;
   border: none;
-  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.28);
+  box-shadow: 0 2px 6px rgba(200, 107, 42, 0.30);
   line-height: 1;
 
   &::after {
