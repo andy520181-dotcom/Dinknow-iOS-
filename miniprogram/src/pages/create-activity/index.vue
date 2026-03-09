@@ -1744,7 +1744,7 @@ onShow(() => {
   width: 100%;
   height: 60px;
   border-radius: $ios-radius-lg;
-  background: $brand-accent;
+  background: #A07868;
   color: #ffffff;
   font-size: 16px;
   font-weight: $ios-font-weight-medium;
