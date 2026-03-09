@@ -1173,7 +1173,7 @@ onShow(() => {
     #7C4E3A 0%,
     #C9856A 18%,
     rgba(253, 248, 245, 0.55) 36%,
-    #F4EFEA 46%
+    #FDF8F5 46%
   );
   display: flex;
   flex-direction: column;

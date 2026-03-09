@@ -6,7 +6,7 @@
     <view
       v-else-if="!isLoggedIn"
       class="login-page"
-      style="background: #F4EFEA;"
+      style="background: #FDF8F5;"
     >
 
       <!-- NOTE: 品牌区块：Logo + 标题聚合居中，占据上半屏，视觉聚焦 -->
@@ -382,7 +382,7 @@ onShow(() => {
     #7C4E3A 0%,
     #C9856A 18%,
     rgba(253, 248, 245, 0.55) 36%,
-    #F4EFEA 46%
+    #FDF8F5 46%
   );
   display: flex;
   flex-direction: column;
