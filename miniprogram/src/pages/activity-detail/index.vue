@@ -1309,7 +1309,7 @@ onShareTimeline(() => {
   width: 84px;
   flex-shrink: 0;
   font-size: 16px;
-  color: $ios-text-secondary;
+  color: $ios-text-primary;
 }
 
 .detail-value {

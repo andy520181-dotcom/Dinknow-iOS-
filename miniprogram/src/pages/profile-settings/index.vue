@@ -459,9 +459,9 @@ onShow(() => {
 }
 
 .ios-cell__label {
-  // NOTE: 与发起活动页统一：16px / $ios-text-secondary，形成标签灰、值深色的层级对比
+  // NOTE: 表单规范：标签/值/标题统一 16px + $ios-text-primary
   font-size: 16px;
-  color: $ios-text-secondary;
+  color: $ios-text-primary;
   flex: 1;
 }
 

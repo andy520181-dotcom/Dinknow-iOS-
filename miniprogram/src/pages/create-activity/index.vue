@@ -1440,7 +1440,7 @@ onShow(() => {
 
 .ios-cell__label {
   font-size: 16px;
-  color: $ios-text-secondary;
+  color: $ios-text-primary;
   flex-shrink: 0;
   // NOTE: 加宽以适配「联系方式」「DUPR 水平」等较长标签
   width: 88px;
