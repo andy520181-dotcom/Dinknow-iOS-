@@ -1173,9 +1173,10 @@ onShow(() => {
   background: linear-gradient(
     to bottom,
     #7C4E3A 0%,
-    #C9856A 22%,
-    rgba(253, 248, 245, 0.55) 40%,
-    #FDF8F5 50%
+    #A4694F 10%,
+    #C9856A 18%,
+    #E2C4B3 25%,
+    #FDF8F5 32%
   );
   display: flex;
   flex-direction: column;
