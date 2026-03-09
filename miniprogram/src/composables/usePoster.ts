@@ -151,6 +151,11 @@ export async function generatePoster(
     ctx.setFillStyle('#FFFFFF')
     roundRect(ctx, cardX, cardY, cardW, cardH, cardR)
     ctx.fill()
+    // 极浅灰边框
+    ctx.setStrokeStyle('#e8e8e8')
+    ctx.setLineWidth(2)
+    roundRect(ctx, cardX, cardY, cardW, cardH, cardR)
+    ctx.stroke()
 
     // ── 绘制卡片内容 ──
     ctx.setTextAlign('left')
