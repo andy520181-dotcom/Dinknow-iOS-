@@ -197,11 +197,10 @@ export async function generatePoster(
     }
 
     // ══════════════════════════════════════════
-    // 4. 卡片下方：品牌装饰线 + 底部信息
+    // 4. 底部区域：固定在画布左下角
     // ══════════════════════════════════════════
-    const cardBottom = cardY + cardH
-    // NOTE: 底部区域紧跟卡片，间距 80px
-    const bottomY = cardBottom + 80
+    // NOTE: 底部信息固定在画布底部，不跟随卡片浮动
+    const bottomY = H - 260
 
     // 装饰横线
     ctx.setStrokeStyle(BRAND_LIGHT)
@@ -211,7 +210,7 @@ export async function generatePoster(
     ctx.lineTo(W - 80, bottomY - 20)
     ctx.stroke()
 
-    // 「扫码参加活动」
+    // 「扫码参加活动」— 左下角
     ctx.setFillStyle(BRAND_PRIMARY)
     ctx.setFontSize(40)
     ctx.setTextAlign('left')
@@ -223,11 +222,11 @@ export async function generatePoster(
     ctx.fillText('Dinknow · 匹克球活动平台', 80, bottomY + 80)
 
     // ══════════════════════════════════════════
-    // 5. 动态小程序码（右下角）
+    // 5. 动态小程序码（右下角，与文字同排）
     // ══════════════════════════════════════════
     const qrSize = 200
     const qrX = W - 80 - qrSize
-    const qrY = bottomY
+    const qrY = bottomY - 10
 
     let qrDrawn = false
     try {
@@ -244,12 +243,11 @@ export async function generatePoster(
         console.warn('[usePoster] 小程序码生成失败:', e)
     }
 
-    // NOTE: 二维码降级方案：如果动态码失败，尝试用本地静态码
+    // NOTE: 二维码降级方案：动态码失败 → 静态码 → 占位框
     if (!qrDrawn) {
         try {
             ctx.drawImage('/static/images/minicode.png', qrX, qrY, qrSize, qrSize)
         } catch {
-            // 连静态码也没有，绘制占位框
             ctx.setStrokeStyle(BRAND_LIGHT)
             ctx.setLineWidth(2)
             roundRect(ctx, qrX, qrY, qrSize, qrSize, 16)
