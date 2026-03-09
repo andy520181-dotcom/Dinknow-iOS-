@@ -882,14 +882,14 @@ async function handleJoinClick() {
   padding: 0 14px;
   height: 30px;
   min-height: 30px;
-  // NOTE: 焦糖橙点缀色，与可可棕主色形成暖系内活力对比，强化行动召唤
-  background: $brand-accent;
+  // NOTE: 浅棕色调，与品牌主色同色系但更柔和，减少视觉压迫
+  background: #A07868;
   color: #fff;
   font-size: 12px;
   font-weight: 400;
   border-radius: 15px;
   border: none;
-  box-shadow: 0 2px 6px rgba(200, 107, 42, 0.30);
+  box-shadow: 0 2px 6px rgba(160, 120, 104, 0.25);
   line-height: 1;
 
   &::after {
