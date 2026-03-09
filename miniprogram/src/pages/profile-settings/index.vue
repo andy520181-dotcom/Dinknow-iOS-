@@ -423,8 +423,8 @@ function handleLogout() {
         uni.setStorageSync('explicitly_logged_out', true)
         uni.setStorageSync('is_logged_in', false)
         clearCloudUrlCache()
-        // NOTE: 返回个人页，onShow 会检测登录状态并切换到登录视图
-        uni.navigateBack()
+        // NOTE: reLaunch 到个人页，页面完全刷新后会显示登录视图
+        uni.reLaunch({ url: '/pages/profile/index' })
       }
     }
   })
