@@ -1,5 +1,6 @@
 <template>
   <view class="create-page">
+    <CustomNavBar title="发起活动" />
     <!-- NOTE: scroll-view 包裹全部内容，小屏幕自动滚动，大屏幕不滚动 -->
     <scroll-view class="create-scroll" scroll-y>
       <!-- 表单主体 -->
@@ -219,6 +220,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import CustomNavBar from '../../components/CustomNavBar.vue'
 import { createActivity, updateActivity } from '../../services/activity'
 import { getUserActivities } from '../../services/activity'
 import { getProfile } from '../../services/user'

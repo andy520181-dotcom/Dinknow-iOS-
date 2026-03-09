@@ -1,5 +1,6 @@
 <template>
   <view class="index-page">
+    <CustomNavBar title="Dinknow" />
     <!-- 顶部区域：两段式胶囊（搜索 | 筛选）-->
     <view class="header-area">
       <view class="header-content">
@@ -162,6 +163,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { onLoad, onPullDownRefresh, onShow, onHide, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import ActivityCard from '../../components/ActivityCard.vue'
+import CustomNavBar from '../../components/CustomNavBar.vue'
 import type { Activity, LocationInfo } from '../../types'
 import { getActivities, joinActivity, deleteActivity } from '../../services/activity'
 import { checkLogin } from '../../services/user'

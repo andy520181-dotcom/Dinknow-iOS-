@@ -1,5 +1,6 @@
 <template>
   <view class="profile-page">
+    <CustomNavBar title="个人中心" />
     <!-- NOTE: 登录状态检查中，显示空白背景，避免已登录用户知觉登录页闪烁 -->
     <view v-if="profileChecking" class="profile-loading" />
     <!-- NOTE: 自定义全屏登录页，内联 style 确保渐变生效（绕过 scoped SCSS 编译问题） -->
@@ -116,6 +117,7 @@ import { clearCloudUrlCache, getTempFileURLs } from '../../services/cloud'
 import { getUserActivities } from '../../services/activity'
 import type { User, Activity } from '../../types'
 import ActivityCalendar from '../../components/ActivityCalendar.vue'
+import CustomNavBar from '../../components/CustomNavBar.vue'
 
 // NOTE: 自动读取微信后台版本号，正式版返回真实版本，开发/体验版返回空字符串
 const appVersion = (() => {
