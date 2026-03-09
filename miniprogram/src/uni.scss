@@ -5,8 +5,8 @@
 $brand-primary: #7C4E3A; // 可可棕主色（按钮、强调、交互）
 $brand-gradient-end: #C9856A; // 玫棕渐变终点（个人页 header 等）
 $brand-gradient: linear-gradient(135deg, $brand-primary 0%, $brand-gradient-end 100%);
-// NOTE: 焦糖橙点缀色，用于「立即报名」等行动按钮，与主色同暖系但形成活力对比
-$brand-accent: #C86B2A;
+// NOTE: 沙金色点缀色，用于「立即报名/登录/发布」等行动按钮，与主色同暖系且轻盈高级
+$brand-accent: #C8B58B;
 
 // ── 功能色（保留 iOS 标准，用于成功/警告/错误场景）────────
 $ios-blue: #007AFF; // 系统蓝（仅用于链接、系统级提示）
@@ -16,8 +16,8 @@ $ios-orange: #FF9500; // 费用/强调
 
 // ── 背景色 ──────────────────────────────────────────────
 $ios-bg-primary: #FFFFFF; // 卡片主背景
-// NOTE: 全局次背景改为暖白 #FDF8F5，与品牌棕色调和，告别冷灰感
-$ios-bg-secondary: #FDF8F5;
+// NOTE: 全局次背景改为暖米色 #F4EFEA，与品牌棕色调和，更沉稳雅致
+$ios-bg-secondary: #F4EFEA;
 $ios-bg-tertiary: #EDE8E3; // 三级背景（输入框），暖灰替代冷灰
 
 // ── 文字颜色 ────────────────────────────────────────────

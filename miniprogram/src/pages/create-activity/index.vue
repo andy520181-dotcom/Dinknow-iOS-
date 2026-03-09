@@ -1173,7 +1173,7 @@ onShow(() => {
     #7C4E3A 0%,
     #C9856A 18%,
     rgba(253, 248, 245, 0.55) 36%,
-    #FDF8F5 46%
+    #F4EFEA 46%
   );
   display: flex;
   flex-direction: column;
@@ -1749,7 +1749,7 @@ onShow(() => {
   width: 100%;
   height: 60px;
   border-radius: $ios-radius-lg;
-  background: $ios-blue;
+  background: $brand-accent;
   color: #ffffff;
   font-size: 16px;
   font-weight: $ios-font-weight-medium;
@@ -1794,8 +1794,8 @@ onShow(() => {
   transition: all 0.15s ease;
 
   &--checked {
-    background: $ios-blue;
-    border-color: $ios-blue;
+    background: $brand-accent;
+    border-color: $brand-accent;
   }
 }
 

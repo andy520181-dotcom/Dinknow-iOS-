@@ -6,7 +6,7 @@
     <view
       v-else-if="!isLoggedIn"
       class="login-page"
-      style="background: #FDF8F5;"
+      style="background: #F4EFEA;"
     >
 
       <!-- NOTE: 品牌区块：Logo + 标题聚合居中，占据上半屏，视觉聚焦 -->
@@ -382,7 +382,7 @@ onShow(() => {
     #7C4E3A 0%,
     #C9856A 18%,
     rgba(253, 248, 245, 0.55) 36%,
-    #FDF8F5 46%
+    #F4EFEA 46%
   );
   display: flex;
   flex-direction: column;
@@ -908,7 +908,7 @@ onShow(() => {
   margin: 0 $ios-spacing-lg $ios-spacing-md;
   height: 44px;
   border-radius: 999px;
-  background: $ios-blue;
+  background: $brand-accent;
   color: #ffffff;
   font-size: 16px;
   display: flex;
@@ -1236,7 +1236,7 @@ onShow(() => {
   // NOTE: 左右 margin 16px，与卡片边距保持一致
   margin: $ios-spacing-xs 16px 0;
   height: 54px;
-  background: $ios-blue;
+  background: $brand-accent;
   border-radius: $ios-radius-lg;
   display: flex;
   align-items: center;
