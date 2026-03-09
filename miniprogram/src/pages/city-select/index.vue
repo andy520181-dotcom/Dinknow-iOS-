@@ -262,7 +262,7 @@ onLoad((options: any) => {
   padding: 12px 16px;
   padding-top: calc(12px + env(safe-area-inset-top));
   background: $ios-bg-primary;
-  border-bottom: 1px solid $ios-separator;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
   gap: 12px;
   position: sticky;
   top: 0;
@@ -320,7 +320,7 @@ onLoad((options: any) => {
 
 .current-city-section {
   padding: 16px;
-  border-bottom: 1px solid $ios-separator;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
 }
 
 .section-title {
@@ -373,7 +373,7 @@ onLoad((options: any) => {
 
 .city-item {
   padding: 14px 0;
-  border-bottom: 1px solid rgba($ios-separator, 0.5);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
   font-size: 16px;
   color: $ios-text-primary;
   
