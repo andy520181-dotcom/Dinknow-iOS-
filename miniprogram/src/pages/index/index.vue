@@ -894,13 +894,11 @@ onShareTimeline(() => {
 .index-page {
   min-height: 100vh;
   padding-bottom: 0;
-  // NOTE: 顶部品牌渐变 — 15色标平滑过渡，尾段拉长到55%消除硬边界
+  // NOTE: 顶部品牌渐变 — 15色标，品牌深色区压缩为3色标
   background: linear-gradient(
     to bottom,
     #7C4E3A 0%,
-    #855B48 3%,
     #8F6756 6%,
-    #987464 9%,
     #A18072 12%,
     #AB8D80 15%,
     #B49A8F 18%,
@@ -912,8 +910,7 @@ onShareTimeline(() => {
     #ECE5E3 36%,
     #F2EDEB 39%,
     #F6F2F1 42%,
-    #FAF7F6 46%,
-    #FDFCFB 50%,
+    #FDFCFB 48%,
     #FFFFFF 55%
   );
   overflow-x: hidden;

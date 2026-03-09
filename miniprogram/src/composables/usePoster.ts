@@ -98,12 +98,10 @@ export async function generatePoster(
     // ══════════════════════════════════════════
     // 1. 整体背景：品牌棕渐变 → 暖白
     // ══════════════════════════════════════════
-    // NOTE: 18色标平滑渐变，与页面背景一致
+    // NOTE: 15色标平滑渐变，与页面背景一致
     const bgGradient = ctx.createLinearGradient(0, 0, 0, H)
     bgGradient.addColorStop(0, '#7C4E3A')
-    bgGradient.addColorStop(0.03, '#855B48')
     bgGradient.addColorStop(0.06, '#8F6756')
-    bgGradient.addColorStop(0.09, '#987464')
     bgGradient.addColorStop(0.12, '#A18072')
     bgGradient.addColorStop(0.15, '#AB8D80')
     bgGradient.addColorStop(0.18, '#B49A8F')
@@ -115,8 +113,7 @@ export async function generatePoster(
     bgGradient.addColorStop(0.36, '#ECE5E3')
     bgGradient.addColorStop(0.39, '#F2EDEB')
     bgGradient.addColorStop(0.42, '#F6F2F1')
-    bgGradient.addColorStop(0.46, '#FAF7F6')
-    bgGradient.addColorStop(0.50, '#FDFCFB')
+    bgGradient.addColorStop(0.48, '#FDFCFB')
     bgGradient.addColorStop(0.55, '#FFFFFF')
     bgGradient.addColorStop(1, '#FFFFFF')
     ctx.setFillStyle(bgGradient)

@@ -378,13 +378,11 @@ onShow(() => {
 <style lang="scss" scoped>
 .profile-page {
   min-height: 100vh;
-  // NOTE: 顶部品牌渐变 — 18色标平滑过渡，与广场页一致
+  // NOTE: 顶部品牌渐变 — 15色标，与广场页一致
   background: linear-gradient(
     to bottom,
     #7C4E3A 0%,
-    #855B48 3%,
     #8F6756 6%,
-    #987464 9%,
     #A18072 12%,
     #AB8D80 15%,
     #B49A8F 18%,
@@ -396,8 +394,7 @@ onShow(() => {
     #ECE5E3 36%,
     #F2EDEB 39%,
     #F6F2F1 42%,
-    #FAF7F6 46%,
-    #FDFCFB 50%,
+    #FDFCFB 48%,
     #FFFFFF 55%
   );
   display: flex;
