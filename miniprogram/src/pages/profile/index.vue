@@ -680,7 +680,8 @@ onShow(() => {
 .profile-avatar--placeholder {
   width: 80px;
   height: 80px;
-  background: $ios-bg-tertiary;
+  // NOTE: 卻除占位背景，让渐变背景直接透出
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -697,7 +698,8 @@ onShow(() => {
   right: 0;
   width: 26px;
   height: 26px;
-  background: #5AABF5;
+  // NOTE: 编辑小圆改为品牌棕色，与渐变头部协调
+  background: $brand-primary;
   border-radius: 50%;
   display: flex;
   align-items: center;
