@@ -646,7 +646,7 @@ onShow(() => {
 
 .profile-edit-badge-text {
   font-size: 12px;
-  color: $ios-text-tertiary;
+  color: #FDF8F5;
   letter-spacing: 0.3px;
 }
 
