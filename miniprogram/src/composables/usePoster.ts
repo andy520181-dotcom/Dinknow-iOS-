@@ -228,7 +228,8 @@ export async function generatePoster(
     // ══════════════════════════════════════════
     const qrSize = 200
     const qrX = W - bottomMargin - qrSize
-    const qrY = bottomY - 10
+    // NOTE: 二维码底边与品牌说明小字底部对齐（小字 y = bottomY + 80）
+    const qrY = bottomY + 80 + 10 - qrSize
 
     let qrDrawn = false
     const activityId = (activity as any)._id || ''
