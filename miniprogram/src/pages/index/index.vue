@@ -896,9 +896,9 @@ onShareTimeline(() => {
   background: linear-gradient(
     to bottom,
     #7C4E3A 0%,
-    #C9856A 15%,
-    rgba(253, 248, 245, 0.55) 30%,
-    #FDF8F5 40%
+    #C9856A 18%,
+    rgba(253, 248, 245, 0.55) 36%,
+    #FDF8F5 46%
   );
   overflow-x: hidden;
   overflow-y: auto;
