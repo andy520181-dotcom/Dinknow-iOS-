@@ -145,7 +145,7 @@ export async function generatePoster(
     const titleHeight = titleLines * titleLineH
 
     // 卡片固定高度 1400px
-    const cardH = 1400
+    const cardH = 1200
 
     // ── 绘制卡片阴影 ──
     ctx.setFillStyle('rgba(0, 0, 0, 0.04)')
