@@ -99,11 +99,6 @@
           :created-activities="myCreated"
         />
 
-        <!-- ── 退出登录按钮 ── -->
-        <view class="logout-btn" @tap="handleLogout">
-          <text class="logout-btn-text">退出登录</text>
-        </view>
-
       </view>
     </view>
   </view>
@@ -322,33 +317,6 @@ function goToSettings() {
 function goToMyActivities(type: 'joined' | 'created') {
   uni.navigateTo({
     url: `/pages/my-activities/index?type=${type}`
-  })
-}
-
-// NOTE: 退出登录：清除本地缓存，小程序回到登录状态
-function handleLogout() {
-  uni.showModal({
-    title: '退出登录',
-    content: '确认退出登录？',
-    confirmText: '退出',
-    confirmColor: '#FF3B30',
-    success: (res) => {
-      if (res.confirm) {
-        uni.clearStorageSync()
-        // NOTE: clearStorage 之后再写标记
-        uni.setStorageSync('explicitly_logged_out', true)
-        uni.setStorageSync('is_logged_in', false)
-        clearCloudUrlCache()
-        isLoggedIn.value = false
-        nickName.value = ''
-        avatarUrl.value = ''
-        duprLevel.value = ''
-        myJoined.value = []
-        myCreated.value = []
-        agreedToTerms.value = false
-        uni.setNavigationBarTitle({ title: '登录' })
-      }
-    }
   })
 }
 
@@ -1052,24 +1020,6 @@ onShow(() => {
   padding: 0 16px 8px;
 }
 
-// ── 退出登录按钮 ──────────────────────────────────────────
-.logout-btn {
-  margin: 12px 16px 0;
-  background: #ffffff;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-
-  &:active { opacity: 0.7; }
-}
-
-.logout-btn-text {
-  font-size: 16px;
-  color: #333333;
-  font-weight: $ios-font-weight-medium;
-}
 
 // ── 底部：联系客服 + 版本号 ────────────────────────────────
 .app-footer-row {

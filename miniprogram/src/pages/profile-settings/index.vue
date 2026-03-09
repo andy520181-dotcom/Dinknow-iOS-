@@ -118,6 +118,11 @@
           </view>
         </view>
 
+        <!-- ── 退出登录按钮 ── -->
+        <view class="logout-btn" @tap="handleLogout">
+          <text class="logout-btn-text">退出登录</text>
+        </view>
+
       </view>
     </scroll-view>
 
@@ -142,7 +147,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { login, getProfile, updateProfile } from '../../services/user'
-import { getTempFileURLs, callCloudFunction } from '../../services/cloud'
+import { getTempFileURLs, callCloudFunction, clearCloudUrlCache } from '../../services/cloud'
 import type { User } from '../../types'
 
 const genderOptions = ['保密', '男', '女']
@@ -404,6 +409,26 @@ onShow(() => {
     saveProfile()
   }
 })
+
+// NOTE: 退出登录：清除本地缓存，跳转回个人页触发登录状态刷新
+function handleLogout() {
+  uni.showModal({
+    title: '退出登录',
+    content: '确认退出登录？',
+    confirmText: '退出',
+    confirmColor: '#FF3B30',
+    success: (res) => {
+      if (res.confirm) {
+        uni.clearStorageSync()
+        uni.setStorageSync('explicitly_logged_out', true)
+        uni.setStorageSync('is_logged_in', false)
+        clearCloudUrlCache()
+        // NOTE: 返回个人页，onShow 会检测登录状态并切换到登录视图
+        uni.navigateBack()
+      }
+    }
+  })
+}
 </script>
 
 <style lang="scss" scoped>
@@ -612,6 +637,25 @@ onShow(() => {
 
   &::after { display: none; }
   &:active { opacity: 0.5; }
+}
+
+// ── 退出登录按钮 ──────────────────────────────────────────
+.logout-btn {
+  margin: 12px 16px 0;
+  background: #ffffff;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+
+  &:active { opacity: 0.7; }
+}
+
+.logout-btn-text {
+  font-size: 16px;
+  color: #333333;
+  font-weight: $ios-font-weight-medium;
 }
 
 </style>
