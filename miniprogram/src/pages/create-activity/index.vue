@@ -1647,7 +1647,7 @@ onShow(() => {
   white-space: nowrap;
 
   &--active {
-    color: $ios-blue;
+    color: $brand-primary;
     font-weight: $ios-font-weight-medium;
   }
 
@@ -1815,7 +1815,7 @@ onShow(() => {
 
 .disclaimer-link {
   font-size: 12px;
-  color: $ios-blue;
+  color: $brand-primary;
   font-weight: $ios-font-weight-medium;
 }
 
