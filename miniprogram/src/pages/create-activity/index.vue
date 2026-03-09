@@ -1169,13 +1169,27 @@ onShow(() => {
 .create-page {
   // NOTE: 固定为一屏高度，scroll-view 内部处理滚动
   height: 100%;
-  // NOTE: 顶部品牌渐变，从导航栏棕色无缝过渡到暖白背景
+  // NOTE: 顶部品牌渐变 — 18色标平滑过渡，与广场页一致
   background: linear-gradient(
     to bottom,
     #7C4E3A 0%,
-    #C9856A 22%,
-    rgba(253, 248, 245, 0.55) 40%,
-    #FDF8F5 50%
+    #855B48 3%,
+    #8F6756 6%,
+    #987464 9%,
+    #A18072 12%,
+    #AB8D80 15%,
+    #B49A8F 18%,
+    #BEA69D 21%,
+    #C7B3AB 24%,
+    #D0C0B9 27%,
+    #DACCC7 30%,
+    #E3D9D5 33%,
+    #ECE5E3 36%,
+    #F2EDEB 39%,
+    #F6F2F1 42%,
+    #FAF7F6 46%,
+    #FDFCFB 50%,
+    #FFFFFF 55%
   );
   display: flex;
   flex-direction: column;
