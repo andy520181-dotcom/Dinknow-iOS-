@@ -4,27 +4,29 @@
       "path": "pages/index/index",
       "style": {
         "navigationBarTitleText": "Dinknow",
-        "navigationBarBackgroundColor": "#F5F5F5",
-        "navigationBarTextStyle": "black",
-        "enablePullDownRefresh": true
+        "navigationBarBackgroundColor": "#7C4E3A",
+        "navigationBarTextStyle": "white",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#7C4E3A"
       }
     },
     {
       "path": "pages/create-activity/index",
       "style": {
         "navigationBarTitleText": "发起活动",
-        "navigationBarBackgroundColor": "#F5F5F5",
-        "navigationBarTextStyle": "black",
-        "disableScroll": true
+        "navigationBarBackgroundColor": "#7C4E3A",
+        "navigationBarTextStyle": "white",
+        "disableScroll": true,
+        "backgroundColor": "#7C4E3A"
       }
     },
     {
       "path": "pages/profile/index",
       "style": {
         "navigationBarTitleText": "",
-        "navigationBarBackgroundColor": "#F5F5F5",
-        "navigationBarTextStyle": "black",
-        "backgroundColor": "#F5F5F5"
+        "navigationBarBackgroundColor": "#7C4E3A",
+        "navigationBarTextStyle": "white",
+        "backgroundColor": "#7C4E3A"
       }
     },
     {

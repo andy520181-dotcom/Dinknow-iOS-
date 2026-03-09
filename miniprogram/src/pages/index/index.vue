@@ -892,9 +892,14 @@ onShareTimeline(() => {
 .index-page {
   min-height: 100vh;
   padding-bottom: 0;
-  // NOTE: 顶部30%保留品牌浅蓝渐变，30%后平滑衔接 iOS 标准灰
-  // 导航栏 #EDF3FF 与渐变顶部一致，分隔线不可见
-  background: $ios-bg-secondary;
+  // NOTE: 顶部自然渗透渐变，与系统导航栏 #7C4E3A 无缝衔接，约45%处完全融入暖白背景
+  background: linear-gradient(
+    to bottom,
+    #7C4E3A 0%,
+    #C9856A 18%,
+    rgba(253, 248, 245, 0.55) 36%,
+    #FDF8F5 46%
+  );
   overflow-x: hidden;
   overflow-y: auto;
 }
