@@ -250,7 +250,7 @@
       </view>
     </view>
     <!-- NOTE: 隐藏画布，供 usePoster 绘制并导出海报图片 -->
-    <canvas canvas-id="posterCanvas" style="position:fixed;top:-9999px;left:-9999px;width:375px;height:600px;" />
+    <canvas canvas-id="posterCanvas" style="position:fixed;top:-9999px;left:-9999px;width:1080px;height:1920px;" />
   </view>
 </template>
 
@@ -575,9 +575,15 @@ const canJoin = computed(() => {
 
 
 onLoad(async (options: any) => {
-  if (options.id) {
-    activityId.value = options.id
-    // loadActivityDetail 内部会先调用 loadCurrentUser，确保数据顺序正确，避免头像闪现
+  // NOTE: 支持两种进入方式：
+  // 1. 正常 navigateTo 带 ?id=xxx
+  // 2. 扫小程序码进入，参数在 options.scene 中（URL encoded）
+  let id = options.id
+  if (!id && options.scene) {
+    id = decodeURIComponent(options.scene)
+  }
+  if (id) {
+    activityId.value = id
     await loadActivityDetail()
   } else {
     loading.value = false
