@@ -681,8 +681,8 @@ onShow(() => {
 .profile-avatar--placeholder {
   width: 80px;
   height: 80px;
-  // NOTE: 卻除占位背景，让渐变背景直接透出
-  background: transparent;
+  // NOTE: 浅灰色占位背景，与图标搭配更清晰
+  background: #e5e5ea;
   display: flex;
   align-items: center;
   justify-content: center;
