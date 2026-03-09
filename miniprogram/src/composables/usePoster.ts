@@ -144,12 +144,8 @@ export async function generatePoster(
     const titleLines = Math.ceil(titleText.length / charsPerLine)
     const titleHeight = titleLines * titleLineH
 
-    // 每条信息行高约 132px（×1.2 倍），保持呼吸感
-    const infoRowH = 132
-    const infoHeight = infoItems.length * infoRowH
-    // 卡片内 padding ×1.2（上96 + 分割线前48 + 分割线后56 + 下76）
-    const cardPadding = 96 + 48 + 56 + 76
-    const cardH = titleHeight + cardPadding + infoHeight
+    // 卡片固定高度 1400px
+    const cardH = 1400
 
     // ── 绘制卡片阴影 ──
     ctx.setFillStyle('rgba(0, 0, 0, 0.04)')
