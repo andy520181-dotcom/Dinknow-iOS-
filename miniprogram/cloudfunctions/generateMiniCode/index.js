@@ -23,6 +23,9 @@ exports.main = async (event) => {
             width: 280,
             // NOTE: 开发阶段用 trial（体验版）；正式发布后改回 release
             envVersion: 'trial',
+            // IMPORTANT: check_path=false 跳过页面路径验证，解决体验版 invalid page 问题
+            // 正式发布后可改回 true
+            check_path: false,
             isHyaline: true
         })
 
