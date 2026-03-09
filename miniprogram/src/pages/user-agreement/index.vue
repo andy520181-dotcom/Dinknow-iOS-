@@ -4,7 +4,7 @@
       <view class="agreement-body">
 
         <text class="section-title">一、总则</text>
-        <text class="section-item">1. 欢迎您使用 Dinknow（以下简称"本平台"）。本用户协议（以下简称"本协议"）由您与 Dinknow 运营方签订，请您在注册或使用本平台前仔细阅读本协议。</text>
+        <text class="section-item">1. 欢迎您使用 Dinkin（以下简称"本平台"）。本用户协议（以下简称"本协议"）由您与 Dinkin 运营方签订，请您在注册或使用本平台前仔细阅读本协议。</text>
         <text class="section-item">2. 您注册、登录或使用本平台，即表示您同意接受本协议的全部条款。如您不同意本协议，请勿使用本平台。</text>
 
         <text class="section-title">二、账号注册与安全</text>
@@ -19,7 +19,7 @@
         <text class="section-item">4. 本平台有权对违规行为进行处理，包括但不限于警告、封号等。</text>
 
         <text class="section-title">四、知识产权</text>
-        <text class="section-item">1. 本平台的所有内容（包括但不限于文字、图片、界面设计）归 Dinknow 所有，受法律保护。</text>
+        <text class="section-item">1. 本平台的所有内容（包括但不限于文字、图片、界面设计）归 Dinkin 所有，受法律保护。</text>
         <text class="section-item">2. 未经许可，您不得复制、传播或商业使用本平台的内容。</text>
 
         <text class="section-title">五、免责声明</text>

@@ -15,7 +15,7 @@
         <view class="login-logo-circle">
           <image class="login-logo-img" src="/static/icons/login-avatar.png" mode="aspectFit" />
         </view>
-        <text class="login-brand-title">欢迎使用Dinknow</text>
+        <text class="login-brand-title">欢迎使用Dinkin</text>
         <text class="login-brand-subtitle">让我们一起匹克球</text>
       </view>
 
@@ -120,12 +120,12 @@ const appVersion = (() => {
     // #ifdef MP-WEIXIN
     const info = (wx as any).getAccountInfoSync()
     const v = info?.miniProgram?.version
-    return v ? `Dinknow v${v}` : 'Dinknow'
+    return v ? `Dinkin v${v}` : 'Dinkin'
     // #endif
   } catch {
-    return 'Dinknow'
+    return 'Dinkin'
   }
-  return 'Dinknow'
+  return 'Dinkin'
 })()
 
 const user = ref<User | null>(null)
@@ -439,7 +439,7 @@ onShow(() => {
   &::after { border: none; }
 
   &--disabled {
-    background: #D1D1D6;
+    background: #C7C7CC;
     box-shadow: none;
     opacity: 1;
   }

@@ -76,7 +76,7 @@
           <text class="participant-nickname">{{ p.nickName || '匹克球友' }}</text>
         </view>
 
-        <!-- "+" 占位圆：Dinknow 品牌文字叠底，+ 号叠加前景 -->
+        <!-- "+" 占位圆：Dinkin 品牌文字叠底，+ 号叠加前景 -->
         <view v-if="showAddSlot && !overflowCount" class="participant-item">
           <view class="participant-add-slot">
             <text class="participant-add-text">+</text>

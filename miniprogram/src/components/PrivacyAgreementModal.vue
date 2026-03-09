@@ -6,7 +6,7 @@
           <view class="app-icon">
             <text class="app-icon-text">D</text>
           </view>
-          <text class="app-name">Dinknow 丁刻 申请</text>
+          <text class="app-name">Dinkin 丁刻 申请</text>
         </view>
         <view class="info-icon">ℹ️</view>
       </view>

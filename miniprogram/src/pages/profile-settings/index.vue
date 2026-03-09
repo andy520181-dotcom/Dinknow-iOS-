@@ -89,7 +89,7 @@
           </view>
         </view>
 
-        <!-- ── 关于 Dinknow ── -->
+        <!-- ── 关于 Dinkin ── -->
         <view class="ios-section">
           <!-- 用户协议 -->
           <view class="ios-cell" @tap="openAgreement('user')">

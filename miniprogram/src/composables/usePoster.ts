@@ -126,7 +126,7 @@ export async function generatePoster(
     ctx.setFontSize(56)
     ctx.setTextAlign('center')
     ctx.setTextBaseline('middle')
-    ctx.fillText('Dinknow', W / 2, 110)
+    ctx.fillText('Dinkin', W / 2, 110)
 
     ctx.setFontSize(28)
     ctx.setFillStyle('rgba(253, 248, 245, 0.75)')
@@ -221,7 +221,7 @@ export async function generatePoster(
     // 品牌说明
     ctx.setFillStyle('#999999')
     ctx.setFontSize(28)
-    ctx.fillText('Dinknow · 匹克球搭子社区', bottomMargin, bottomY + 80)
+    ctx.fillText('Dinkin · 匹克球搭子社区', bottomMargin, bottomY + 80)
 
     // ══════════════════════════════════════════
     // 5. 动态小程序码（右下角，与文字同排居中对齐）

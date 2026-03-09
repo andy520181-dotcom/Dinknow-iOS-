@@ -1190,7 +1190,7 @@ async function handleJoin() {
 onShareAppMessage(() => {
   if (!activity.value || !activityId.value) {
     return {
-      title: '找匹克球搭子，上Dinknow',
+      title: '找匹克球搭子，上Dinkin',
       path: '/pages/index/index'
     }
   }
@@ -1209,7 +1209,7 @@ onShareAppMessage(() => {
 onShareTimeline(() => {
   if (!activity.value || !activityId.value) {
     return {
-      title: '找匹克球搭子，上Dinknow',
+      title: '找匹克球搭子，上Dinkin',
       query: ''
     }
   }

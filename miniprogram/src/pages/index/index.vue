@@ -1,6 +1,6 @@
 <template>
   <view class="index-page">
-    <CustomNavBar title="Dinknow" />
+    <CustomNavBar title="Dinkin" />
     <!-- 顶部区域：两段式胶囊（搜索 | 筛选）-->
     <view class="header-area">
       <view class="header-content">
@@ -861,7 +861,7 @@ onUnmounted(() => {
 onShareAppMessage(() => {
   const target = shareTargetActivity.value
   if (target?._id) {
-    const title = target.title ? `${target.title} - 找匹克球搭子，上Dinknow` : '找匹克球搭子，上Dinknow'
+    const title = target.title ? `${target.title} - 找匹克球搭子，上Dinkin` : '找匹克球搭子，上Dinkin'
     const path = `/pages/activity-detail/index?id=${encodeURIComponent(target._id)}`
     shareTargetActivity.value = null // 用后清空
     return {
@@ -872,7 +872,7 @@ onShareAppMessage(() => {
   }
   // NOTE: 默认品牌转发标题
   return {
-    title: '找匹克球搭子，上Dinknow',
+    title: '找匹克球搭子，上Dinkin',
     path: '/pages/index/index',
     imageUrl: '/images/share-image.png'
   }
@@ -881,7 +881,7 @@ onShareAppMessage(() => {
 // NOTE: 分享到朋友圌（需在小程序后台开通「分享朋友圌」权限）
 onShareTimeline(() => {
   return {
-    title: '找匹克球搭子，上Dinknow',
+    title: '找匹克球搭子，上Dinkin',
     query: '',
     imageUrl: '/images/share-image.png'
   }
