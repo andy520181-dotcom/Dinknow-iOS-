@@ -1836,13 +1836,13 @@ onShareTimeline(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $brand-accent;
+  background: #A07868;
   color: #fff;
   font-size: 16px;
   font-weight: $ios-font-weight-semibold;
   border-radius: $ios-radius-lg;
   border: none;
-  box-shadow: 0 4px 16px rgba(200, 107, 42, 0.30);
+  box-shadow: 0 4px 16px rgba(160, 120, 104, 0.25);
   transition: all 0.2s ease;
 
   &::after {

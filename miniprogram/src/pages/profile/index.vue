@@ -426,7 +426,7 @@ onShow(() => {
 .login-primary-btn {
   width: 100%;
   height: 52px;
-  background: $brand-primary;
+  background: #A07868;
   // NOTE: 与活动卡片 ios-section 圆角参数一致（$ios-radius-lg = 16px）
   border-radius: $ios-radius-lg;
   border: none;
@@ -435,7 +435,7 @@ onShow(() => {
   justify-content: center;
   padding: 0;
   margin: 0;
-  box-shadow: 0 4px 20px rgba(124, 78, 58, 0.30);
+  box-shadow: 0 4px 20px rgba(160, 120, 104, 0.25);
   &::after { border: none; }
 
   &--disabled {
