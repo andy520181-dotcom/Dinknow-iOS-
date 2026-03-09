@@ -1755,9 +1755,9 @@ onShow(() => {
 }
 
 .create-footer {
-  // NOTE: 上下留白增大，与免责声明区保持舒适间距
-  padding: $ios-spacing-md $ios-spacing-lg calc($ios-spacing-lg + env(safe-area-inset-bottom));
-  background: $ios-bg-secondary;
+  // NOTE: 增大上方间距，小屏幕上避免遮挡免责声明区域
+  padding: $ios-spacing-lg $ios-spacing-lg calc($ios-spacing-xl + env(safe-area-inset-bottom));
+  background: transparent;
   flex-shrink: 0;
 }
 
