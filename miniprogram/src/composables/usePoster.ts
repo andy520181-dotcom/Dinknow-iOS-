@@ -15,6 +15,9 @@ const CANVAS_ID = 'posterCanvas'
 const W = 1080
 const H = 1920
 
+// NOTE: 二维码 fileID 缓存，同一活动只生成一次
+const qrCodeCache = new Map<string, string>()
+
 // 品牌色
 const BRAND_PRIMARY = '#7C4E3A'
 const BRAND_LIGHT = '#C9856A'
@@ -215,20 +218,29 @@ export async function generatePoster(
     const qrY = bottomY - 10
 
     let qrDrawn = false
+    const activityId = (activity as any)._id || ''
     try {
-        console.log('[usePoster] 开始生成小程序码, activityId:', (activity as any)._id)
-        const codeRes: any = await callCloudFunction('generateMiniCode', {
-            scene: (activity as any)._id || '',
-            page: 'pages/activity-detail/index'
-        })
-        console.log('[usePoster] 云函数返回:', JSON.stringify(codeRes))
-        if (codeRes?.success && codeRes.fileID) {
-            const qrPath = await getDrawableUrl(codeRes.fileID)
-            console.log('[usePoster] 二维码临时路径:', qrPath)
+        // NOTE: 优先从缓存取二维码 fileID，避免重复调用云函数
+        let fileID = qrCodeCache.get(activityId)
+        if (!fileID) {
+            console.log('[usePoster] 缓存未命中，生成小程序码, activityId:', activityId)
+            const codeRes: any = await callCloudFunction('generateMiniCode', {
+                scene: activityId,
+                page: 'pages/activity-detail/index'
+            })
+            if (codeRes?.success && codeRes.fileID) {
+                fileID = codeRes.fileID
+                qrCodeCache.set(activityId, fileID!)
+            } else {
+                console.warn('[usePoster] 云函数返回 success=false:', codeRes)
+            }
+        } else {
+            console.log('[usePoster] 缓存命中，跳过云函数调用')
+        }
+        if (fileID) {
+            const qrPath = await getDrawableUrl(fileID)
             ctx.drawImage(qrPath, qrX, qrY, qrSize, qrSize)
             qrDrawn = true
-        } else {
-            console.warn('[usePoster] 云函数返回 success=false 或无 fileID:', codeRes)
         }
     } catch (e) {
         console.error('[usePoster] 小程序码生成异常:', e)
