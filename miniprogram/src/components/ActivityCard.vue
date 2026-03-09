@@ -622,11 +622,11 @@ async function handleJoinClick() {
   min-width: 0;
 }
 
-// NOTE: 费用突出显示：品牌蓝色、加粗，右对齐
+// NOTE: 费用突出显示：琥珀橙点缀，与暖棕主色搭配，右对齐
 .card-fee-highlight {
   font-size: 16px;
   font-weight: 600;
-  color: $ios-blue;
+  color: #D4731A;
   white-space: nowrap;
   flex-shrink: 0;
 }
