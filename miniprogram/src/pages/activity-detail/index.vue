@@ -1884,7 +1884,7 @@ onShareTimeline(() => {
 
 .join-disclaimer-link {
   font-size: 12px;
-  color: $ios-blue;
+  color: $brand-primary;
   font-weight: $ios-font-weight-medium;
 }
 // NOTE: 底部「分享海报」入口条，任何时候均显示

@@ -564,7 +564,7 @@ onShow(() => {
 
 .login-terms-link {
   font-size: 12px;
-  color: $ios-blue;
+  color: $brand-primary;
   line-height: 1.5;
 }
 
@@ -1021,7 +1021,7 @@ onShow(() => {
 .stat-count {
   font-size: 32px;
   font-weight: $ios-font-weight-semibold;
-  color: $ios-blue;
+  color: $brand-primary;
   line-height: 1;
 }
 

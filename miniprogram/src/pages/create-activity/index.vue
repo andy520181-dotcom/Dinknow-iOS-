@@ -1205,13 +1205,13 @@ onShow(() => {
 
   &__text {
     font-size: 12px;
-    color: $ios-text-tertiary;
+    color: #ffffff;
     font-weight: $ios-font-weight-regular;
   }
 
   &__arrow {
     font-size: 12px;
-    color: $ios-text-tertiary;
+    color: #ffffff;
   }
 }
 

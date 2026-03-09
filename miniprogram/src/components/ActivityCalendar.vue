@@ -370,7 +370,7 @@ function goToDetail(activity: ActivityWithRole) {
   }
 
   &--created {
-    background: #FF9500;
+    background: #D4731A;
   }
 }
 
@@ -480,7 +480,7 @@ function goToDetail(activity: ActivityWithRole) {
   }
 
   &--created {
-    color: #FF9500;
+    color: #D4731A;
     background: rgba(255, 149, 0, 0.1);
   }
 }
