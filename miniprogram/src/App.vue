@@ -18,7 +18,9 @@ onLaunch(() => {
 
 page {
   height: 100%;
-  background-color: $ios-bg-secondary;
+  // NOTE: 透明背景，各页面通过 .xxx-page CSS 和 pages.json backgroundColor 控制
+  // FIXME: 原来的 $ios-bg-secondary 会在导航栏 hairline 处透出，导致浅色分割线
+  background-color: transparent;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', 
     'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
   font-size: $ios-font-size-md;
