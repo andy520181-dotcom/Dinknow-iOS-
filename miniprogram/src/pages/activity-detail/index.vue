@@ -1251,8 +1251,8 @@ onShareTimeline(() => {
   }
 
   &--initiator {
-    // NOTE: 昵称文字与「发起人」标签顶部平齐
-    align-items: flex-start;
+    // NOTE: 标签+头像+昵称水平居中，与其他行一致
+    align-items: center;
   }
 }
 
