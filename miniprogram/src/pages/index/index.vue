@@ -892,7 +892,15 @@ onShareTimeline(() => {
 .index-page {
   min-height: 100vh;
   padding-bottom: 0;
-  background: $ios-bg-secondary;
+  // NOTE: 顶部品牌渐变，从导航栏棕色无缝过渡到暖白背景
+  background: linear-gradient(
+    to bottom,
+    #7C4E3A 0%,
+    #7C4E3A 8%,
+    #C9856A 18%,
+    rgba(253, 248, 245, 0.55) 36%,
+    #FDF8F5 46%
+  );
   overflow-x: hidden;
   overflow-y: auto;
 }
