@@ -1167,15 +1167,7 @@ onShow(() => {
 .create-page {
   // NOTE: 固定为一屏高度，scroll-view 内部处理滚动
   height: 100%;
-  // NOTE: 顶部自然渗透渐变，与系统导航栏 #7C4E3A 无缝衔接
-  background: linear-gradient(
-    to bottom,
-    #7C4E3A 0%,
-    #7C4E3A 8%,
-    #C9856A 18%,
-    rgba(253, 248, 245, 0.55) 36%,
-    #FDF8F5 46%
-  );
+  background: $ios-bg-secondary;
   display: flex;
   flex-direction: column;
 }

@@ -376,15 +376,7 @@ onShow(() => {
 <style lang="scss" scoped>
 .profile-page {
   min-height: 100vh;
-  // NOTE: 顶部渐变与系统导航栏 #7C4E3A 无缝衔接，profile-hero 的渐变 header 自然延伸其中
-  background: linear-gradient(
-    to bottom,
-    #7C4E3A 0%,
-    #7C4E3A 8%,
-    #C9856A 18%,
-    rgba(253, 248, 245, 0.55) 36%,
-    #FDF8F5 46%
-  );
+  background: $ios-bg-secondary;
   display: flex;
   flex-direction: column;
   position: relative;
