@@ -12,7 +12,6 @@
       "path": "pages/create-activity/index",
       "style": {
         "navigationStyle": "custom",
-        "disableScroll": true,
         "backgroundColor": "#FFFFFF"
       }
     },

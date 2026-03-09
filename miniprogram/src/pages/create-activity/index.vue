@@ -1167,17 +1167,17 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .create-page {
-  // NOTE: 固定为一屏高度，scroll-view 内部处理滚动
-  height: 100%;
+  // NOTE: min-height 确保渐变至少覆盖一屏，内容超出时页面自然滚动
+  min-height: 100vh;
   background: #{"linear-gradient(to bottom, #7C4E3A 0%, #8F6756 6%, #A18072 12%, #AB8D80 15%, #B49A8F 18%, #BEA69D 21%, #C7B3AB 24%, #D0C0B9 27%, #DACCC7 30%, #E3D9D5 33%, #ECE5E3 36%, #F2EDEB 39%, #F6F2F1 42%, #FDFCFB 48%, #FDF8F5 55%)"};
   display: flex;
   flex-direction: column;
 }
 
 // NOTE: scroll-view 擔满全局，内容超出时自动滚动
+// NOTE: scroll-view 自适应内容高度，页面原生滚动
 .create-scroll {
   flex: 1;
-  height: 100%;
 }
 
 // NOTE: 表单区普通块布局，高度由内容决定
