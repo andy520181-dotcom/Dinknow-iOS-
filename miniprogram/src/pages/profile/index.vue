@@ -461,7 +461,7 @@ onShow(() => {
 }
 
 // NOTE: 微信 getPhoneNumber 触发按钒，外观完全自定义
-// 选中后与发新活动「点击发布」按钒相同蓝色（$ios-blue）
+// 选中后与发新活动「点击发布」按钒相同蓝色（$brand-primary）
 .login-primary-btn {
   width: 100%;
   height: 52px;

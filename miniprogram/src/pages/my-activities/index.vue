@@ -483,11 +483,11 @@ async function handleLeaveActivity(activity: Activity) {
 }
 
 .edit-btn {
-  background: $ios-blue;
+  background: $brand-primary;
   color: #fff;
 
   &:active {
-    background: darken($ios-blue, 6%);
+    background: darken($brand-primary, 6%);
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
   }
 
@@ -523,7 +523,7 @@ async function handleLeaveActivity(activity: Activity) {
   line-height: 28px;
   border-radius: 14px;
   border: none;
-  background: $ios-blue;
+  background: $brand-primary;
   color: #fff;
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -533,7 +533,7 @@ async function handleLeaveActivity(activity: Activity) {
   }
 
   &:active {
-    background: darken($ios-blue, 6%);
+    background: darken($brand-primary, 6%);
     transform: scale(0.96);
   }
 

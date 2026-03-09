@@ -201,7 +201,7 @@ watch(() => props.show, (newVal) => {
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: $ios-blue;
+  background: $brand-primary;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -259,7 +259,7 @@ watch(() => props.show, (newVal) => {
 .modal-agreement {
   margin-bottom: 0;
   padding: 16px;
-  background: rgba($ios-blue, 0.05);
+  background: rgba($brand-primary, 0.05);
   border-radius: 12px;
 }
 
@@ -282,8 +282,8 @@ watch(() => props.show, (newVal) => {
   transition: all 0.2s ease;
   
   &.checked {
-    background: $ios-blue;
-    border-color: $ios-blue;
+    background: $brand-primary;
+    border-color: $brand-primary;
   }
 }
 
@@ -301,7 +301,7 @@ watch(() => props.show, (newVal) => {
   line-height: 1.6;
   
   .link {
-    color: $ios-blue;
+    color: $brand-primary;
     text-decoration: underline;
   }
 }

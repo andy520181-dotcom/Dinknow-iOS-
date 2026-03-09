@@ -252,7 +252,7 @@ onMounted(() => {
   padding: 6px 4px;
 
   &--done {
-    background: $ios-blue;
+    background: $brand-primary;
     border-radius: 8px;
     padding: 6px 16px;
     &-disabled { background: $ios-text-tertiary; }
@@ -323,8 +323,8 @@ onMounted(() => {
   background: transparent;
 
   &--on {
-    border-color: $ios-blue;
-    background: $ios-blue;
+    border-color: $brand-primary;
+    background: $brand-primary;
 
     &::after {
       content: '';
@@ -361,7 +361,7 @@ onMounted(() => {
   flex: 1;
   font-size: 16px;
   font-weight: 400;
-  color: $ios-blue;
+  color: $brand-primary;
   text-align: right;
 }
 

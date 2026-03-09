@@ -339,7 +339,7 @@ onLoad((options: any) => {
 .current-city-tag {
   display: inline-block;
   padding: 8px 16px;
-  background: $ios-blue;
+  background: $brand-primary;
   color: #fff;
   border-radius: 20px;
   font-size: 16px;
@@ -378,7 +378,7 @@ onLoad((options: any) => {
   color: $ios-text-primary;
   
   &:active {
-    background: rgba($ios-blue, 0.05);
+    background: rgba($brand-primary, 0.05);
   }
   
   &:last-child {
@@ -411,21 +411,21 @@ onLoad((options: any) => {
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  color: $ios-blue;
+  color: $brand-primary;
   font-weight: $ios-font-weight-medium;
   transition: all 0.2s ease;
   
   &:active {
-    background: rgba($ios-blue, 0.15);
+    background: rgba($brand-primary, 0.15);
     border-radius: 4px;
     transform: scale(1.2);
   }
   
   &.active {
-    background: rgba($ios-blue, 0.2);
+    background: rgba($brand-primary, 0.2);
     border-radius: 4px;
     transform: scale(1.15);
-    color: $ios-blue;
+    color: $brand-primary;
   }
 }
 

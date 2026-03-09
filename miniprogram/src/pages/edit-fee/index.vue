@@ -126,7 +126,7 @@ onMounted(() => {
   padding: 6px 4px;
 
   &--done {
-    background: $ios-blue;
+    background: $brand-primary;
     border-radius: 8px;
     padding: 6px 16px;
     &-disabled { background: $ios-text-tertiary; }
@@ -185,8 +185,8 @@ onMounted(() => {
   background: transparent;
 
   &--on {
-    border-color: $ios-blue;
-    background: $ios-blue;
+    border-color: $brand-primary;
+    background: $brand-primary;
 
     // NOTE: top/left 50% + translate 精准居中，Y 轴 -60% 补偿对勾视觉重心
     &::after {
@@ -232,7 +232,7 @@ onMounted(() => {
 .amount-input {
   font-size: 22px;
   font-weight: 700;
-  color: $ios-blue;
+  color: $brand-primary;
   min-width: 48px;
   max-width: 120px;
   text-align: right;

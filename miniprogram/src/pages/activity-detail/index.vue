@@ -1866,8 +1866,8 @@ onShareTimeline(() => {
   transition: all 0.15s ease;
 
   &--checked {
-    background: $ios-blue;
-    border-color: $ios-blue;
+    background: $brand-primary;
+    border-color: $brand-primary;
   }
 }
 

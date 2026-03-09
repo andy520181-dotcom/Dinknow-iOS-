@@ -934,7 +934,7 @@ onShareTimeline(() => {
   align-items: center;
 
   &--active .sort-tab-text {
-    color: $ios-blue;
+    color: $brand-primary;
     font-weight: $ios-font-weight-semibold;
   }
 
@@ -946,7 +946,7 @@ onShareTimeline(() => {
     left: 0;
     right: 0;
     height: 2px;
-    background: $ios-blue;
+    background: $brand-primary;
     border-radius: 1px;
   }
 }
@@ -1116,7 +1116,7 @@ onShareTimeline(() => {
   line-height: 1;
 
   .capsule-filter--active & {
-    color: $ios-blue;
+    color: $brand-primary;
   }
 }
 
@@ -1218,7 +1218,7 @@ onShareTimeline(() => {
 
   // NOTE: 选中时蓝色实心
   &--active {
-    background: $ios-blue;
+    background: $brand-primary;
 
     .filter-chip-text { color: #fff; }
   }
@@ -1263,7 +1263,7 @@ onShareTimeline(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $ios-blue;
+  background: $brand-primary;
   border-radius: $ios-radius-md;
 
   &:active { opacity: 0.85; }

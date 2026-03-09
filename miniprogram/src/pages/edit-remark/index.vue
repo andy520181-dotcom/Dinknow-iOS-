@@ -137,7 +137,7 @@ onMounted(() => {
   padding: 6px 4px;
 
   &--done {
-    background: $ios-blue;
+    background: $brand-primary;
     border-radius: 8px;
     padding: 6px 16px;
     &-disabled { background: $ios-text-tertiary; }
