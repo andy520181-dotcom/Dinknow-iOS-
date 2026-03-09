@@ -121,7 +121,7 @@ export async function generatePoster(
     // 3. 先计算卡片内容高度，再绘制卡片
     // ══════════════════════════════════════════
     const cardX = 60
-    const cardY = 260
+    const cardY = 360
     const cardW = W - 120
     const cardR = 32
     const px = cardX + 56
@@ -144,11 +144,11 @@ export async function generatePoster(
     const titleLines = Math.ceil(titleText.length / charsPerLine)
     const titleHeight = titleLines * titleLineH
 
-    // 每条信息行高约 110px（56 行高 + 54 间距），保持呼吸感
-    const infoRowH = 110
+    // 每条信息行高约 132px（×1.2 倍），保持呼吸感
+    const infoRowH = 132
     const infoHeight = infoItems.length * infoRowH
-    // 卡片内 padding（上80 + 分割线前40 + 分割线后48 + 下64）
-    const cardPadding = 80 + 40 + 48 + 64
+    // 卡片内 padding ×1.2（上96 + 分割线前48 + 分割线后56 + 下76）
+    const cardPadding = 96 + 48 + 56 + 76
     const cardH = titleHeight + cardPadding + infoHeight
 
     // ── 绘制卡片阴影 ──
@@ -171,17 +171,17 @@ export async function generatePoster(
     // 活动标题
     ctx.setFillStyle('#1a1a1a')
     ctx.setFontSize(48)
-    let nextY = drawWrappedText(ctx, titleText, px, cardY + 80, contentW, titleLineH)
+    let nextY = drawWrappedText(ctx, titleText, px, cardY + 96, contentW, titleLineH)
 
     // 分割线
-    nextY += 28
+    nextY += 36
     ctx.setStrokeStyle('#f0f0f0')
     ctx.setLineWidth(2)
     ctx.beginPath()
     ctx.moveTo(px, nextY)
     ctx.lineTo(px + contentW, nextY)
     ctx.stroke()
-    nextY += 48
+    nextY += 56
 
     // 信息行（加大间距保持呼吸感）
     for (const item of infoItems) {
@@ -194,7 +194,7 @@ export async function generatePoster(
         const valueX = px + 180
         const valueMaxW = contentW - 180
         nextY = drawWrappedText(ctx, item.value, valueX, nextY, valueMaxW, 56)
-        nextY += 54
+        nextY += 64
     }
 
     // ══════════════════════════════════════════
