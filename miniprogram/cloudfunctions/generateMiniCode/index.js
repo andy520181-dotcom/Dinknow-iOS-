@@ -19,8 +19,8 @@ exports.main = async (event) => {
             scene,
             page,
             width: 280,
-            // NOTE: 设为 release 生成正式版码；开发期间可改为 develop / trial
-            envVersion: 'release',
+            // NOTE: 开发阶段用 develop；正式发布后改回 release
+            envVersion: 'develop',
             isHyaline: true // 透明背景
         })
 
