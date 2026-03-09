@@ -230,34 +230,42 @@ export async function generatePoster(
 
     let qrDrawn = false
     try {
+        console.log('[usePoster] 开始生成小程序码, activityId:', (activity as any)._id)
         const codeRes: any = await callCloudFunction('generateMiniCode', {
             scene: (activity as any)._id || '',
             page: 'pages/activity-detail/index'
         })
+        console.log('[usePoster] 云函数返回:', JSON.stringify(codeRes))
         if (codeRes?.success && codeRes.fileID) {
             const qrPath = await getDrawableUrl(codeRes.fileID)
+            console.log('[usePoster] 二维码临时路径:', qrPath)
             ctx.drawImage(qrPath, qrX, qrY, qrSize, qrSize)
             qrDrawn = true
+        } else {
+            console.warn('[usePoster] 云函数返回 success=false 或无 fileID:', codeRes)
         }
     } catch (e) {
-        console.warn('[usePoster] 小程序码生成失败:', e)
+        console.error('[usePoster] 小程序码生成异常:', e)
     }
 
-    // NOTE: 二维码降级方案：动态码失败 → 静态码 → 占位框
+    // NOTE: 降级占位：始终绘制占位框（不依赖 try-catch，drawImage 静默失败时也能兜底）
     if (!qrDrawn) {
-        try {
-            ctx.drawImage('/static/images/minicode.png', qrX, qrY, qrSize, qrSize)
-        } catch {
-            ctx.setStrokeStyle(BRAND_LIGHT)
-            ctx.setLineWidth(2)
-            roundRect(ctx, qrX, qrY, qrSize, qrSize, 16)
-            ctx.stroke()
-            ctx.setFillStyle(BRAND_PRIMARY)
-            ctx.setFontSize(24)
-            ctx.setTextAlign('center')
-            ctx.fillText('小程序码', qrX + qrSize / 2, qrY + qrSize / 2 - 12)
-            ctx.setTextAlign('left')
-        }
+        console.log('[usePoster] 使用占位框替代二维码')
+        // 浅灰圆角占位框
+        ctx.setFillStyle('#f5f5f5')
+        roundRect(ctx, qrX, qrY, qrSize, qrSize, 16)
+        ctx.fill()
+        ctx.setStrokeStyle(BRAND_LIGHT)
+        ctx.setLineWidth(2)
+        roundRect(ctx, qrX, qrY, qrSize, qrSize, 16)
+        ctx.stroke()
+        ctx.setFillStyle(BRAND_PRIMARY)
+        ctx.setFontSize(24)
+        ctx.setTextAlign('center')
+        ctx.setTextBaseline('middle')
+        ctx.fillText('小程序码', qrX + qrSize / 2, qrY + qrSize / 2)
+        ctx.setTextAlign('left')
+        ctx.setTextBaseline('top')
     }
 
     // ══════════════════════════════════════════
