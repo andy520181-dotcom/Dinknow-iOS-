@@ -115,7 +115,7 @@ export async function generatePoster(
 
     ctx.setFontSize(28)
     ctx.setFillStyle('rgba(253, 248, 245, 0.75)')
-    ctx.fillText('匹克球活动平台', W / 2, 170)
+    ctx.fillText('匹克球搭子平台', W / 2, 170)
 
     // ══════════════════════════════════════════
     // 3. 先计算卡片内容高度，再绘制卡片
@@ -137,18 +137,18 @@ export async function generatePoster(
         { label: '发起人', value: activity.hostName || '匹克球友' },
     ]
 
-    // NOTE: 预估卡片内容高度，让卡片紧贴内容
-    const titleLineH = 64
+    // NOTE: 预估卡片内容高度 — 加大间距保持呼吸感
+    const titleLineH = 72
     const titleText = activity.title || '活动'
-    // 粗略估算标题行数（按中文字符 48px 字号，每个字约 48px 宽）
     const charsPerLine = Math.floor(contentW / 48)
     const titleLines = Math.ceil(titleText.length / charsPerLine)
     const titleHeight = titleLines * titleLineH
 
-    // 每条信息行高约 66px（46 行高 + 20 间距）
-    const infoHeight = infoItems.length * 66
-    // 卡片内 padding + 分割线间距
-    const cardPadding = 56 + 32 + 32 + 40 // 上 padding + 分割线前 + 分割线后 + 下 padding
+    // 每条信息行高约 110px（56 行高 + 54 间距），保持呼吸感
+    const infoRowH = 110
+    const infoHeight = infoItems.length * infoRowH
+    // 卡片内 padding（上80 + 分割线前40 + 分割线后48 + 下64）
+    const cardPadding = 80 + 40 + 48 + 64
     const cardH = titleHeight + cardPadding + infoHeight
 
     // ── 绘制卡片阴影 ──
@@ -171,47 +171,39 @@ export async function generatePoster(
     // 活动标题
     ctx.setFillStyle('#1a1a1a')
     ctx.setFontSize(48)
-    let nextY = drawWrappedText(ctx, titleText, px, cardY + 56, contentW, titleLineH)
+    let nextY = drawWrappedText(ctx, titleText, px, cardY + 80, contentW, titleLineH)
 
     // 分割线
-    nextY += 16
+    nextY += 28
     ctx.setStrokeStyle('#f0f0f0')
     ctx.setLineWidth(2)
     ctx.beginPath()
     ctx.moveTo(px, nextY)
     ctx.lineTo(px + contentW, nextY)
     ctx.stroke()
-    nextY += 32
+    nextY += 48
 
-    // 信息行
+    // 信息行（加大间距保持呼吸感）
     for (const item of infoItems) {
-        ctx.setFontSize(32)
+        ctx.setFontSize(34)
         ctx.setFillStyle('#999999')
         ctx.fillText(item.label, px, nextY)
 
         ctx.setFillStyle('#333333')
-        ctx.setFontSize(34)
-        const valueX = px + 170
-        const valueMaxW = contentW - 170
-        nextY = drawWrappedText(ctx, item.value, valueX, nextY, valueMaxW, 46)
-        nextY += 20
+        ctx.setFontSize(36)
+        const valueX = px + 180
+        const valueMaxW = contentW - 180
+        nextY = drawWrappedText(ctx, item.value, valueX, nextY, valueMaxW, 56)
+        nextY += 54
     }
 
     // ══════════════════════════════════════════
     // 4. 底部区域：固定在画布左下角
     // ══════════════════════════════════════════
     // NOTE: 底部信息固定在画布底部，不跟随卡片浮动
-    const bottomY = H - 260
+    const bottomY = H - 220
 
-    // 装饰横线
-    ctx.setStrokeStyle(BRAND_LIGHT)
-    ctx.setLineWidth(3)
-    ctx.beginPath()
-    ctx.moveTo(80, bottomY - 20)
-    ctx.lineTo(W - 80, bottomY - 20)
-    ctx.stroke()
-
-    // 「扫码参加活动」— 左下角
+    // 「扫码参加活动」— 左下角（无装饰线）
     ctx.setFillStyle(BRAND_PRIMARY)
     ctx.setFontSize(40)
     ctx.setTextAlign('left')
@@ -220,7 +212,7 @@ export async function generatePoster(
     // 品牌说明
     ctx.setFillStyle('#999999')
     ctx.setFontSize(28)
-    ctx.fillText('Dinknow · 匹克球活动平台', 80, bottomY + 80)
+    ctx.fillText('Dinknow · 匹克球搭子平台', 80, bottomY + 80)
 
     // ══════════════════════════════════════════
     // 5. 动态小程序码（右下角，与文字同排）
@@ -269,13 +261,7 @@ export async function generatePoster(
         ctx.setTextBaseline('top')
     }
 
-    // ══════════════════════════════════════════
-    // 6. 底部品牌 footer
-    // ══════════════════════════════════════════
-    ctx.setFillStyle('#e0d5cf')
-    ctx.setFontSize(24)
-    ctx.setTextAlign('center')
-    ctx.fillText('长按图片保存 · 分享给球友', W / 2, H - 80)
+    // NOTE: 已删除底部“长按图片保存”提示文案，保持简洁
 
     // ══════════════════════════════════════════
     // 7. 导出高清图片
