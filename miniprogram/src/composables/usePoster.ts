@@ -209,28 +209,34 @@ export async function generatePoster(
     }
 
     // ══════════════════════════════════════════
-    // 4. 底部区域：固定在画布左下角
+    // 4. 底部区域：二维码 + 文字整体水平居中
     // ══════════════════════════════════════════
     // NOTE: 底部信息固定在画布底部，不跟随卡片浮动
     const bottomY = H - 220
 
-    // 「扫码参加活动」— 左下角（无装饰线）
+    // ══════════════════════════════════════════
+    // 5. 动态小程序码（与文字水平居中对齐）
+    // ══════════════════════════════════════════
+    const qrSize = 200
+    // NOTE: 整体布局 = [二维码 qrSize] + [间距 40] + [文字区]，居中对齐
+    const gap = 40
+    const textBlockW = 420 // 文字区域预估宽度
+    const totalW = qrSize + gap + textBlockW
+    const startX = (W - totalW) / 2
+    const qrX = startX
+    const qrY = bottomY - 10
+    const textX = startX + qrSize + gap
+
+    // 「扫码参加活动」— 二维码右侧
     ctx.setFillStyle(BRAND_PRIMARY)
     ctx.setFontSize(40)
     ctx.setTextAlign('left')
-    ctx.fillText('扫码参加活动', 80, bottomY + 20)
+    ctx.fillText('扫码参加活动', textX, bottomY + 20)
 
     // 品牌说明
     ctx.setFillStyle('#999999')
     ctx.setFontSize(28)
-    ctx.fillText('Dinknow · 匹克球搭子社区', 80, bottomY + 80)
-
-    // ══════════════════════════════════════════
-    // 5. 动态小程序码（右下角，与文字同排）
-    // ══════════════════════════════════════════
-    const qrSize = 200
-    const qrX = W - 80 - qrSize
-    const qrY = bottomY - 10
+    ctx.fillText('Dinknow · 匹克球搭子社区', textX, bottomY + 80)
 
     let qrDrawn = false
     const activityId = (activity as any)._id || ''
