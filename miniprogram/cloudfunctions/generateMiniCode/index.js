@@ -12,17 +12,21 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
  */
 exports.main = async (event) => {
     const scene = event.scene || ''
-    const page = event.page || 'pages/activity-detail/index'
+    // NOTE: page 留空则默认指向小程序首页，避免 invalid page 报错
+    const page = event.page || ''
 
     try {
-        const result = await cloud.openapi.wxacode.getUnlimited({
+        // NOTE: 不传 page 则默认进入小程序首页；scene 会作为查询参数传入
+        const params = {
             scene,
-            page,
             width: 280,
-            // NOTE: 开发阶段用 develop；正式发布后改回 release
-            envVersion: 'develop',
-            isHyaline: true // 透明背景
-        })
+            // NOTE: 开发阶段用 trial（体验版）；正式发布后改回 release
+            envVersion: 'trial',
+            isHyaline: true
+        }
+        // 仅在 page 有值时才传，避免 invalid page 错误
+        if (page) params.page = page
+        const result = await cloud.openapi.wxacode.getUnlimited(params)
 
         if (!result.buffer) {
             return { success: false, error: 'empty buffer' }
