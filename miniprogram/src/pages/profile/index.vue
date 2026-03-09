@@ -439,9 +439,9 @@ onShow(() => {
   &::after { border: none; }
 
   &--disabled {
-    background: #8e8e93;
+    background: #D1D1D6;
     box-shadow: none;
-    opacity: 0.8;
+    opacity: 1;
   }
 }
 
