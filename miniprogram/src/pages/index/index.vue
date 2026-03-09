@@ -894,7 +894,7 @@ onShareTimeline(() => {
   padding-bottom: 0;
   // NOTE: 顶部30%保留品牌浅蓝渐变，30%后平滑衔接 iOS 标准灰
   // 导航栏 #EDF3FF 与渐变顶部一致，分隔线不可见
-  background: #F5F5F5;
+  background: $ios-bg-secondary;
   overflow-x: hidden;
   overflow-y: auto;
 }

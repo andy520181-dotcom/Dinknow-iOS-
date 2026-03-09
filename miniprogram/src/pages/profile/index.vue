@@ -6,7 +6,7 @@
     <view
       v-else-if="!isLoggedIn"
       class="login-page"
-      style="background: #F5F5F5;"
+      style="background: #FDF8F5;"
     >
 
       <!-- NOTE: 品牌区块：Logo + 标题聚合居中，占据上半屏，视觉聚焦 -->
@@ -376,11 +376,9 @@ onShow(() => {
 <style lang="scss" scoped>
 .profile-page {
   min-height: 100vh;
-  // NOTE: 与全局页面统一使用暖中性灰
-  background: #F5F5F5;
+  background: $ios-bg-secondary;
   display: flex;
   flex-direction: column;
-  // NOTE: 为 login-page 的定位提供包含块
   position: relative;
 }
 
@@ -393,7 +391,7 @@ onShow(() => {
   display: flex;
   flex-direction: column;
   // NOTE: 与全局统一
-  background: #F5F5F5;
+  background: $ios-bg-secondary;
   // NOTE: 水平边距不在这里设，而是各子区域自己设，避免微信 button 忽略父 padding
   padding: 60px 0 52px;
   box-sizing: border-box;
@@ -414,7 +412,7 @@ onShow(() => {
   display: block;
   font-size: 24px;
   font-weight: 700;
-  color: #1a1a2e;
+  color: $ios-text-primary;
   margin-top: 20px;
   text-align: center;
 }
@@ -422,7 +420,7 @@ onShow(() => {
 .login-brand-subtitle {
   display: block;
   font-size: 12px;
-  color: #8888aa;
+  color: $ios-text-tertiary;
   margin-top: 6px;
   text-align: center;
 }
@@ -458,7 +456,7 @@ onShow(() => {
 .login-primary-btn {
   width: 100%;
   height: 52px;
-  background: $ios-blue;
+  background: $brand-primary;
   // NOTE: 与活动卡片 ios-section 圆角参数一致（$ios-radius-lg = 16px）
   border-radius: $ios-radius-lg;
   border: none;
@@ -467,7 +465,7 @@ onShow(() => {
   justify-content: center;
   padding: 0;
   margin: 0;
-  box-shadow: 0 4px 20px rgba(10, 132, 255, 0.30);
+  box-shadow: 0 4px 20px rgba(124, 78, 58, 0.30);
   &::after { border: none; }
 
   &--disabled {
@@ -499,7 +497,7 @@ onShow(() => {
 
 .login-cancel-text {
   font-size: 16px;
-  color: #5a5a7a;
+  color: $ios-text-secondary;
 }
 
 // 协议勾选行：两层 flex 确保垂直居中
@@ -535,8 +533,8 @@ onShow(() => {
   align-self: center;
 
   &--checked {
-    background: $ios-blue;
-    border-color: $ios-blue;
+    background: $brand-primary;
+    border-color: $brand-primary;
   }
 }
 
@@ -550,7 +548,7 @@ onShow(() => {
 // NOTE: 单根 text 嵌套链接，WeChat 小程序中最稳定的垂直居中写法
 .login-terms-desc {
   font-size: 12px;
-  color: #8888aa;
+  color: $ios-text-tertiary;
   line-height: 18px;
   align-self: center;
 }
@@ -582,8 +580,10 @@ onShow(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px 16px 24px;
-  background: transparent;
+  // NOTE: 品牌渐变 header，从可可棕到玫棕，底部圆角与内容区自然过渡
+  padding: 48px 16px 28px;
+  background: $brand-gradient;
+  border-radius: 0 0 24px 24px;
   margin-bottom: 12px;
   position: relative;
 }
@@ -592,9 +592,10 @@ onShow(() => {
 
 
 .profile-hero-name {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: $ios-font-weight-semibold;
-  color: #111;
+  // NOTE: 渐变背景上使用白色文字，对比度符合无障碍标准
+  color: #ffffff;
   margin-top: 12px;
 }
 
@@ -612,7 +613,8 @@ onShow(() => {
 
 .profile-hero-dupr-text {
   font-size: 12px;
-  color: $ios-text-tertiary;
+  // NOTE: 渐变背景上降低不透明度作为次级文字区别于昵称
+  color: rgba(255, 255, 255, 0.80);
   font-weight: $ios-font-weight-regular;
 }
 

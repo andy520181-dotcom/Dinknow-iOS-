@@ -286,14 +286,14 @@ function goToDetail(activity: ActivityWithRole) {
 
 .cal-nav-icon {
   font-size: 22px;
-  color: #0A84FF;
+  color: $brand-primary;
   line-height: 1;
 }
 
 .cal-month-label {
   font-size: 15px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: $ios-text-primary;
 }
 
 // ── 星期标题 ──
@@ -329,13 +329,13 @@ function goToDetail(activity: ActivityWithRole) {
 
   &--today {
     .cal-day-num {
-      color: #0A84FF;
+      color: $brand-primary;
       font-weight: 700;
     }
   }
 
   &--selected {
-    background: #0A84FF;
+    background: $brand-primary;
 
     .cal-day-num {
       color: #ffffff;
@@ -346,7 +346,7 @@ function goToDetail(activity: ActivityWithRole) {
 
 .cal-day-num {
   font-size: 14px;
-  color: #1a1a2e;
+  color: $ios-text-primary;
   line-height: 1.4;
 }
 
@@ -364,8 +364,9 @@ function goToDetail(activity: ActivityWithRole) {
   height: 5px;
   border-radius: 50%;
 
+  // NOTE: 参加圆点使用品牌主色，发起用橙色区分角色
   &--joined {
-    background: #0A84FF;
+    background: $brand-primary;
   }
 
   &--created {
@@ -431,7 +432,7 @@ function goToDetail(activity: ActivityWithRole) {
 .cal-event-card {
   display: flex;
   align-items: stretch;
-  background: #F7F8FA;
+  background: $ios-bg-secondary;
   border-radius: 10px;
   margin-bottom: 8px;
   overflow: hidden;
@@ -458,7 +459,7 @@ function goToDetail(activity: ActivityWithRole) {
 .cal-event-card__title {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: $ios-text-primary;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -474,8 +475,8 @@ function goToDetail(activity: ActivityWithRole) {
   flex-shrink: 0;
 
   &--joined {
-    color: #0A84FF;
-    background: rgba(10, 132, 255, 0.1);
+    color: $brand-primary;
+    background: rgba(124, 78, 58, 0.1);
   }
 
   &--created {

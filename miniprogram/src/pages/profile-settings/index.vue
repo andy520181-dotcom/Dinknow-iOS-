@@ -409,7 +409,7 @@ onShow(() => {
 <style lang="scss" scoped>
 .settings-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: $ios-bg-secondary;
 }
 
 .settings-scroll {
@@ -578,7 +578,7 @@ onShow(() => {
 
 .action-sheet-item-text {
   font-size: 16px;
-  color: #1a1a2e;
+  color: $ios-text-primary;
 
   &--cancel {
     color: #8e8e93;

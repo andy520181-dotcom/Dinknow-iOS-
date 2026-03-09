@@ -214,7 +214,7 @@ function handleSave() {
   padding: 0;
 
   &--save {
-    background: #007AFF;
+    background: $brand-primary;
     color: #fff;
   }
 

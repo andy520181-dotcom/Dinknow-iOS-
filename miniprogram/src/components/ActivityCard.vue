@@ -882,7 +882,7 @@ async function handleJoinClick() {
   padding: 0 14px;
   height: 30px;
   min-height: 30px;
-  background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+  background: linear-gradient(135deg, #7C4E3A 0%, #C9856A 100%);
   color: #fff;
   font-size: 12px;
   font-weight: 400;

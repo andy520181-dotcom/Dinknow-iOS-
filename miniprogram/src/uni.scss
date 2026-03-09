@@ -1,38 +1,44 @@
 /* iOS风格设计系统 - 全局 scss 变量 */
 
-// iOS颜色系统
-$ios-blue: #007AFF;           // iOS主色调
-$ios-blue-dark: #0051D5;       // 按下状态
-$ios-green: #34C759;           // 成功/确认
-$ios-red: #FF3B30;             // 警告/删除
-$ios-orange: #FF9500;          // 费用/强调
+// ── 品牌色（可可玫棕）─────────────────────────────────────
+// NOTE: 专属品牌色，替代通用 iOS 蓝，营造差异化高级感
+$brand-primary: #7C4E3A; // 可可棕主色（按钮、强调、交互）
+$brand-gradient-end: #C9856A; // 玫棕渐变终点（个人页 header 等）
+$brand-gradient: linear-gradient(135deg, $brand-primary 0%, $brand-gradient-end 100%);
 
-// 背景色
-$ios-bg-primary: #FFFFFF;      // 主背景（卡片）
-$ios-bg-secondary: #F2F2F7;     // 次背景（页面）
-$ios-bg-tertiary: #E5E5EA;      // 三级背景（输入框）
+// ── 功能色（保留 iOS 标准，用于成功/警告/错误场景）────────
+$ios-blue: #007AFF; // 系统蓝（仅用于链接、系统级提示）
+$ios-green: #34C759; // 成功/确认
+$ios-red: #FF3B30; // 警告/删除
+$ios-orange: #FF9500; // 费用/强调
 
-// 文字颜色
-$ios-text-primary: #000000;    // 主文字
-$ios-text-secondary: #3C3C43;  // 次要文字
-$ios-text-tertiary: #8E8E93;   // 三级文字（占位符）
-$ios-text-disabled: #C7C7CC;   // 禁用文字
+// ── 背景色 ──────────────────────────────────────────────
+$ios-bg-primary: #FFFFFF; // 卡片主背景
+// NOTE: 全局次背景改为暖白 #FDF8F5，与品牌棕色调和，告别冷灰感
+$ios-bg-secondary: #FDF8F5;
+$ios-bg-tertiary: #EDE8E3; // 三级背景（输入框），暖灰替代冷灰
 
-// 边框颜色
-$ios-border: #C6C6C8;           // 边框
-$ios-separator: #E5E5EA;       // 分隔线
+// ── 文字颜色 ────────────────────────────────────────────
+$ios-text-primary: #1A1008; // 主文字：极深棕黑，比纯黑更温润
+$ios-text-secondary: #4A3728; // 次要文字：暖棕灰
+$ios-text-tertiary: #8E7E72; // 三级文字：占位符/辅助
+$ios-text-disabled: #C7BEB7; // 禁用文字
 
-// 阴影
-$ios-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-$ios-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
-$ios-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+// ── 边框颜色 ────────────────────────────────────────────
+$ios-border: #C6B8AD; // 边框（暖调）
+$ios-separator: rgba(124, 78, 58, 0.10); // 分隔线（品牌色低透明度）
 
-// 圆角
-$ios-radius-sm: 8px;            // 小圆角（按钮、标签）
-$ios-radius-md: 12px;           // 中圆角（输入框）
-$ios-radius-lg: 16px;           // 大圆角（卡片）
+// ── 阴影 ────────────────────────────────────────────────
+$ios-shadow-sm: 0 1px 3px rgba(124, 78, 58, 0.08);
+$ios-shadow-md: 0 2px 8px rgba(124, 78, 58, 0.10);
+$ios-shadow-lg: 0 4px 16px rgba(124, 78, 58, 0.14);
 
-// 间距系统
+// ── 圆角 ────────────────────────────────────────────────
+$ios-radius-sm: 8px;
+$ios-radius-md: 12px;
+$ios-radius-lg: 16px;
+
+// ── 间距系统 ────────────────────────────────────────────
 $ios-spacing-xs: 4px;
 $ios-spacing-sm: 8px;
 $ios-spacing-md: 12px;
@@ -40,7 +46,7 @@ $ios-spacing-lg: 16px;
 $ios-spacing-xl: 20px;
 $ios-spacing-xxl: 24px;
 
-// 字体大小（iOS标准）
+// ── 字体大小 ────────────────────────────────────────────
 $ios-font-size-xs: 11px;
 $ios-font-size-sm: 13px;
 $ios-font-size-md: 15px;
@@ -48,14 +54,14 @@ $ios-font-size-lg: 17px;
 $ios-font-size-xl: 20px;
 $ios-font-size-xxl: 28px;
 
-// 字体粗细
+// ── 字体粗细 ────────────────────────────────────────────
 $ios-font-weight-regular: 400;
 $ios-font-weight-medium: 500;
 $ios-font-weight-semibold: 600;
 $ios-font-weight-bold: 700;
 
-// 兼容旧变量
-$primary-color: $ios-blue;
+// ── 兼容旧变量 ──────────────────────────────────────────
+$primary-color: $brand-primary;
 $bg-color: $ios-bg-secondary;
 $text-color: $ios-text-primary;
 $text-secondary: $ios-text-secondary;

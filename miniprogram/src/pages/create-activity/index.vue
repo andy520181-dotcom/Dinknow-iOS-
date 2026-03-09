@@ -1168,7 +1168,7 @@ onShow(() => {
   // NOTE: 固定为一屏高度，scroll-view 内部处理滚动
   height: 100%;
   // NOTE: 与全局页面统一使用暖中性灰
-  background: #F5F5F5;
+  background: $ios-bg-secondary;
   display: flex;
   flex-direction: column;
 }
