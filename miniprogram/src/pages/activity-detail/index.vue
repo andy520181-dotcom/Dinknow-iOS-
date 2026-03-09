@@ -238,7 +238,7 @@
         </view>
         <!-- NOTE: 生成海报 → previewImage 全屏预览，可长按保存/分享 -->
         <view class="more-sheet-item" @tap="generateAndPreview">
-          <text class="more-sheet-item-text">{{ posterGenerating ? '生成中...' : '生成分享图片' }}</text>
+          <text class="more-sheet-item-text">{{ posterGenerating ? '生成中...' : '分享图片' }}</text>
         </view>
         <!-- NOTE: 分享到微信好友，必须用 open-type="share" 按钮 -->
         <button class="more-sheet-item" open-type="share" @tap="showMoreSheet = false">
