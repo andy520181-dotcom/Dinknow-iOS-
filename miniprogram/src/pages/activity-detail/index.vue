@@ -24,9 +24,9 @@
               </view>
               <text class="detail-initiator-name">{{ activity.hostName || '匹克球友' }}</text>
             </view>
-            <!-- NOTE: 分享按鈕在行内锺右，自然与昵称文字水平对齐 -->
+            <!-- NOTE: 三点菜单按钮，行内靠右 -->
             <view class="detail-more-btn" @tap.stop="showMoreMenu">
-              <image class="detail-more-icon" src="/static/icons/fenxiang.png" mode="aspectFit" />
+              <text class="detail-more-icon">•••</text>
             </view>
           </view>
           <view class="detail-row">
@@ -1249,7 +1249,8 @@ onShareTimeline(() => {
   }
 
   &--initiator {
-    align-items: center;
+    // NOTE: 昵称文字与「发起人」标签顶部平齐
+    align-items: flex-start;
   }
 }
 
@@ -1916,9 +1917,9 @@ onShareTimeline(() => {
 }
 
 .detail-more-icon {
-  width: 20px;
-  height: 20px;
-  opacity: 0.45;
+  font-size: 16px;
+  color: $ios-text-secondary;
+  letter-spacing: 2px;
 }
 
 // NOTE: 三点菜单底部弹出层
