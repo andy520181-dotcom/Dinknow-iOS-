@@ -71,7 +71,7 @@
                 mode="aspectFill"
               />
               <view v-else class="profile-avatar profile-avatar--placeholder">
-                <text class="profile-avatar-icon">👤</text>
+                <image class="profile-avatar-icon-img" src="/static/icons/avatar-placeholder.png" mode="aspectFit" />
               </view>
             </view>
           </view>
@@ -688,8 +688,9 @@ onShow(() => {
   justify-content: center;
 }
 
-.profile-avatar-icon {
-  font-size: 40px;
+.profile-avatar-icon-img {
+  width: 50%;
+  height: 50%;
 }
 
 // NOTE: 编辑图标容器，浅蓝色圆形背景与页面蓝色渐变协调
