@@ -3,18 +3,15 @@
  *
  * 设计规范：
  *  - 画布 1080×1920px（手机全屏高清比例）
- *  - 品牌棕渐变背景，无蓝条
- *  - 活动信息为白色圆角卡片 + 轻阴影
+ *  - 品牌棕渐变顶部，暖白色主体
+ *  - 活动信息为白色圆角卡片 + 轻阴影，高度自适应内容
  *  - 底部品牌色文字 + 动态小程序码
- *
- * NOTE: 独立 composable，不修改 activity-detail 任何业务逻辑。
  */
 
 import type { Activity } from '../types'
 import { callCloudFunction } from '../services/cloud'
 
 const CANVAS_ID = 'posterCanvas'
-// NOTE: 1080×1920 为海报物理像素，canvas 坐标按此绘制
 const W = 1080
 const H = 1920
 
@@ -44,7 +41,7 @@ function getDrawableUrl(url: string): Promise<string> {
 }
 
 /**
- * 在 canvas 上绘制圆角矩形路径（用于卡片）
+ * 在 canvas 上绘制圆角矩形路径
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function roundRect(ctx: any, x: number, y: number, w: number, h: number, r: number) {
@@ -62,7 +59,7 @@ function roundRect(ctx: any, x: number, y: number, w: number, h: number, r: numb
 }
 
 /**
- * 文字自动换行绘制
+ * 文字自动换行绘制，返回最终 Y 坐标
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function drawWrappedText(ctx: any, text: string, x: number, y: number, maxWidth: number, lineHeight: number): number {
@@ -70,7 +67,6 @@ function drawWrappedText(ctx: any, text: string, x: number, y: number, maxWidth:
     let currentY = y
     for (let i = 0; i < text.length; i++) {
         const testLine = line + text[i]
-        // NOTE: measureText 在小程序 canvas 中精度有限，按字符估算宽度
         const metrics = ctx.measureText(testLine)
         if (metrics && metrics.width > maxWidth && i > 0) {
             ctx.fillText(line, x, currentY)
@@ -86,10 +82,6 @@ function drawWrappedText(ctx: any, text: string, x: number, y: number, maxWidth:
 
 /**
  * 核心：在页面 canvas 上绘制海报，导出临时文件路径
- * @param activity   活动数据
- * @param dateText   格式化日期时间
- * @param feeText    格式化费用
- * @param instance   页面/组件实例（getCurrentInstance()?.proxy）
  */
 export async function generatePoster(
     activity: Activity,
@@ -105,8 +97,9 @@ export async function generatePoster(
     // ══════════════════════════════════════════
     const bgGradient = ctx.createLinearGradient(0, 0, 0, H)
     bgGradient.addColorStop(0, BRAND_PRIMARY)
-    bgGradient.addColorStop(0.22, BRAND_LIGHT)
-    bgGradient.addColorStop(0.38, WARM_WHITE)
+    bgGradient.addColorStop(0.18, BRAND_LIGHT)
+    bgGradient.addColorStop(0.32, WARM_WHITE)
+    bgGradient.addColorStop(0.45, '#FFFFFF')
     bgGradient.addColorStop(1, '#FFFFFF')
     ctx.setFillStyle(bgGradient)
     ctx.fillRect(0, 0, W, H)
@@ -118,45 +111,66 @@ export async function generatePoster(
     ctx.setFontSize(56)
     ctx.setTextAlign('center')
     ctx.setTextBaseline('middle')
-    ctx.fillText('Dinknow', W / 2, 120)
+    ctx.fillText('Dinknow', W / 2, 110)
 
-    // NOTE: 副标题
     ctx.setFontSize(28)
     ctx.setFillStyle('rgba(253, 248, 245, 0.75)')
-    ctx.fillText('匹克球活动平台', W / 2, 180)
+    ctx.fillText('匹克球活动平台', W / 2, 170)
 
     // ══════════════════════════════════════════
-    // 3. 活动信息卡片（白色圆角 + 阴影）
+    // 3. 先计算卡片内容高度，再绘制卡片
     // ══════════════════════════════════════════
     const cardX = 60
-    const cardY = 280
+    const cardY = 260
     const cardW = W - 120
-    const cardH = 980
     const cardR = 32
+    const px = cardX + 56
+    const contentW = cardW - 112
 
-    // NOTE: 用多层半透明矩形模拟阴影（canvas 2d 不支持 boxShadow）
+    // NOTE: 信息行数据
+    const infoItems = [
+        { label: '时间', value: dateText },
+        { label: '地点', value: activity.venueName || activity.address || '待定' },
+        { label: '费用', value: feeText },
+        { label: '人数', value: `${(activity as any).participants?.length || 0} / ${activity.maxParticipants || '不限'}` },
+        { label: '发起人', value: activity.hostName || '匹克球友' },
+    ]
+
+    // NOTE: 预估卡片内容高度，让卡片紧贴内容
+    const titleLineH = 64
+    const titleText = activity.title || '活动'
+    // 粗略估算标题行数（按中文字符 48px 字号，每个字约 48px 宽）
+    const charsPerLine = Math.floor(contentW / 48)
+    const titleLines = Math.ceil(titleText.length / charsPerLine)
+    const titleHeight = titleLines * titleLineH
+
+    // 每条信息行高约 66px（46 行高 + 20 间距）
+    const infoHeight = infoItems.length * 66
+    // 卡片内 padding + 分割线间距
+    const cardPadding = 56 + 32 + 32 + 40 // 上 padding + 分割线前 + 分割线后 + 下 padding
+    const cardH = titleHeight + cardPadding + infoHeight
+
+    // ── 绘制卡片阴影 ──
     ctx.setFillStyle('rgba(0, 0, 0, 0.04)')
-    roundRect(ctx, cardX + 6, cardY + 8, cardW, cardH, cardR)
+    roundRect(ctx, cardX + 6, cardY + 10, cardW, cardH, cardR)
     ctx.fill()
-    ctx.setFillStyle('rgba(0, 0, 0, 0.03)')
-    roundRect(ctx, cardX + 3, cardY + 4, cardW, cardH, cardR)
+    ctx.setFillStyle('rgba(0, 0, 0, 0.02)')
+    roundRect(ctx, cardX + 3, cardY + 5, cardW, cardH, cardR)
     ctx.fill()
 
-    // 白色卡片本体
+    // ── 白色卡片 ──
     ctx.setFillStyle('#FFFFFF')
     roundRect(ctx, cardX, cardY, cardW, cardH, cardR)
     ctx.fill()
 
-    // ── 卡片内容 ──
-    const px = cardX + 56 // 卡片内左边距
-    const contentW = cardW - 112 // 内容区宽度
+    // ── 绘制卡片内容 ──
     ctx.setTextAlign('left')
     ctx.setTextBaseline('top')
 
-    // 活动标题（粗体大字）
+    // 活动标题
     ctx.setFillStyle('#1a1a1a')
     ctx.setFontSize(48)
-    let nextY = drawWrappedText(ctx, activity.title || '活动', px, cardY + 56, contentW, 64)
+    let nextY = drawWrappedText(ctx, titleText, px, cardY + 56, contentW, titleLineH)
 
     // 分割线
     nextY += 16
@@ -169,24 +183,13 @@ export async function generatePoster(
     nextY += 32
 
     // 信息行
-    const infoItems = [
-        { label: '时间', value: dateText },
-        { label: '地点', value: activity.venueName || activity.address || '待定' },
-        { label: '费用', value: feeText },
-        { label: '人数', value: `${(activity as any).participants?.length || 0} / ${activity.maxParticipants || '不限'}` },
-        { label: '发起人', value: activity.hostName || '匹克球友' },
-    ]
-
     for (const item of infoItems) {
-        // 标签
         ctx.setFontSize(32)
         ctx.setFillStyle('#999999')
         ctx.fillText(item.label, px, nextY)
 
-        // 值
         ctx.setFillStyle('#333333')
         ctx.setFontSize(34)
-        // NOTE: 标签宽度固定 160px，值从标签右侧开始
         const valueX = px + 170
         const valueMaxW = contentW - 170
         nextY = drawWrappedText(ctx, item.value, valueX, nextY, valueMaxW, 46)
@@ -194,28 +197,40 @@ export async function generatePoster(
     }
 
     // ══════════════════════════════════════════
-    // 4. 底部区域：品牌色文字 + 小程序码
+    // 4. 卡片下方：品牌装饰线 + 底部信息
     // ══════════════════════════════════════════
-    const bottomY = H - 240
+    const cardBottom = cardY + cardH
+    // NOTE: 底部区域紧跟卡片，间距 80px
+    const bottomY = cardBottom + 80
 
-    // 「扫码参加活动」文字
+    // 装饰横线
+    ctx.setStrokeStyle(BRAND_LIGHT)
+    ctx.setLineWidth(3)
+    ctx.beginPath()
+    ctx.moveTo(80, bottomY - 20)
+    ctx.lineTo(W - 80, bottomY - 20)
+    ctx.stroke()
+
+    // 「扫码参加活动」
     ctx.setFillStyle(BRAND_PRIMARY)
-    ctx.setFontSize(36)
+    ctx.setFontSize(40)
     ctx.setTextAlign('left')
-    ctx.fillText('扫码参加活动', 80, bottomY)
+    ctx.fillText('扫码参加活动', 80, bottomY + 20)
 
-    // 品牌名
+    // 品牌说明
     ctx.setFillStyle('#999999')
     ctx.setFontSize(28)
-    ctx.fillText('Dinknow · 匹克球活动平台', 80, bottomY + 56)
+    ctx.fillText('Dinknow · 匹克球活动平台', 80, bottomY + 80)
 
-    // ── 动态小程序码 ──
-    const qrSize = 180
+    // ══════════════════════════════════════════
+    // 5. 动态小程序码（右下角）
+    // ══════════════════════════════════════════
+    const qrSize = 200
     const qrX = W - 80 - qrSize
-    const qrY = bottomY - 20
+    const qrY = bottomY
 
+    let qrDrawn = false
     try {
-        // NOTE: 调用云函数生成动态小程序码
         const codeRes: any = await callCloudFunction('generateMiniCode', {
             scene: (activity as any)._id || '',
             page: 'pages/activity-detail/index'
@@ -223,27 +238,43 @@ export async function generatePoster(
         if (codeRes?.success && codeRes.fileID) {
             const qrPath = await getDrawableUrl(codeRes.fileID)
             ctx.drawImage(qrPath, qrX, qrY, qrSize, qrSize)
+            qrDrawn = true
         }
     } catch (e) {
-        // NOTE: 二维码生成失败不影响海报其他内容，静默跳过
         console.warn('[usePoster] 小程序码生成失败:', e)
-        // 绘制一个占位圆角框
-        ctx.setStrokeStyle('#e0e0e0')
-        ctx.setLineWidth(2)
-        roundRect(ctx, qrX, qrY, qrSize, qrSize, 16)
-        ctx.stroke()
-        ctx.setFillStyle('#cccccc')
-        ctx.setFontSize(22)
-        ctx.setTextAlign('center')
-        ctx.fillText('小程序码', qrX + qrSize / 2, qrY + qrSize / 2 - 10)
+    }
+
+    // NOTE: 二维码降级方案：如果动态码失败，尝试用本地静态码
+    if (!qrDrawn) {
+        try {
+            ctx.drawImage('/static/images/minicode.png', qrX, qrY, qrSize, qrSize)
+        } catch {
+            // 连静态码也没有，绘制占位框
+            ctx.setStrokeStyle(BRAND_LIGHT)
+            ctx.setLineWidth(2)
+            roundRect(ctx, qrX, qrY, qrSize, qrSize, 16)
+            ctx.stroke()
+            ctx.setFillStyle(BRAND_PRIMARY)
+            ctx.setFontSize(24)
+            ctx.setTextAlign('center')
+            ctx.fillText('小程序码', qrX + qrSize / 2, qrY + qrSize / 2 - 12)
+            ctx.setTextAlign('left')
+        }
     }
 
     // ══════════════════════════════════════════
-    // 5. 导出高清图片
+    // 6. 底部品牌 footer
+    // ══════════════════════════════════════════
+    ctx.setFillStyle('#e0d5cf')
+    ctx.setFontSize(24)
+    ctx.setTextAlign('center')
+    ctx.fillText('长按图片保存 · 分享给球友', W / 2, H - 80)
+
+    // ══════════════════════════════════════════
+    // 7. 导出高清图片
     // ══════════════════════════════════════════
     return new Promise((resolve, reject) => {
         ctx.draw(false, () => {
-            // NOTE: destWidth/destHeight 确保导出图片为 1080×1920 物理像素
             uni.canvasToTempFilePath({
                 canvasId: CANVAS_ID,
                 destWidth: W,
@@ -259,5 +290,4 @@ export async function generatePoster(
     })
 }
 
-/** 海报所用 canvasId 常量，供模板绑定 */
 export { CANVAS_ID }
