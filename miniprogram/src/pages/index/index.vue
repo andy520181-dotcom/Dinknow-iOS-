@@ -894,13 +894,19 @@ onShareTimeline(() => {
 .index-page {
   min-height: 100vh;
   padding-bottom: 0;
-  // NOTE: 顶部品牌渐变，从导航栏棕色无缝过渡到暖白背景
+  // NOTE: 顶部品牌渐变 — 多色标平滑过渡，无断层
   background: linear-gradient(
     to bottom,
     #7C4E3A 0%,
-    #C9856A 22%,
-    rgba(253, 248, 245, 0.55) 40%,
-    #FDF8F5 50%
+    #8D5C48 5%,
+    #9E6A56 9%,
+    #B07D68 13%,
+    #C9856A 17%,
+    #D9A58E 21%,
+    #E8C4B5 25%,
+    #F2DDD3 29%,
+    #FDF8F5 33%,
+    #FFFFFF 40%
   );
   overflow-x: hidden;
   overflow-y: auto;
