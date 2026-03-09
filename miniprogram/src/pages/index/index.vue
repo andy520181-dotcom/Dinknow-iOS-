@@ -894,7 +894,7 @@ onShareTimeline(() => {
 .index-page {
   min-height: 100vh;
   padding-bottom: 0;
-  background: #{"linear-gradient(to bottom, #7C4E3A 0%, #8F6756 6%, #A18072 12%, #AB8D80 15%, #B49A8F 18%, #BEA69D 21%, #C7B3AB 24%, #D0C0B9 27%, #DACCC7 30%, #E3D9D5 33%, #ECE5E3 36%, #F2EDEB 39%, #F6F2F1 42%, #FDFCFB 48%, #FFFFFF 55%)"};
+  background: #FFFFFF;
   overflow-x: hidden;
   overflow-y: auto;
 }
