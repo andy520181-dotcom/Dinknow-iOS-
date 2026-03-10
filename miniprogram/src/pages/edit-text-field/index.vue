@@ -37,20 +37,23 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
-// NOTE: 通过页面参数决定编辑的字段类型（nickname / signature）
-const fieldType = ref<'nickname' | 'signature'>('nickname')
+// NOTE: 通过页面参数决定编辑的字段类型（nickname / signature / title）
+const fieldType = ref<'nickname' | 'signature' | 'title'>('nickname')
 const inputValue = ref('')
 
 const pageTitle = computed(() => {
+  if (fieldType.value === 'title') return '编辑标题'
   return fieldType.value === 'nickname' ? '设置昵称' : '编辑球风'
 })
 
 const placeholder = computed(() => {
+  if (fieldType.value === 'title') return '请输入活动标题'
   return fieldType.value === 'nickname' ? '请输入昵称' : '请填写球风，如进攻型、防守型等'
 })
 
 const maxLen = computed(() => {
-  return fieldType.value === 'nickname' ? 20 : 20
+  // NOTE: 标题、昵称、球风统一 20 字限制
+  return 20
 })
 
 onMounted(() => {
@@ -58,7 +61,7 @@ onMounted(() => {
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1] as any
   const options = currentPage?.options ?? {}
-  fieldType.value = (options.type === 'signature' ? 'signature' : 'nickname')
+  fieldType.value = (['signature', 'title'].includes(options.type) ? options.type : 'nickname') as any
   inputValue.value = decodeURIComponent(options.value ?? '')
 
   // NOTE: 动态设置原生导航栏标题
@@ -75,11 +78,17 @@ function onCancel() {
 
 function onDone() {
   if (!inputValue.value.trim()) return
-  // NOTE: 通过 eventBus 通知上一页保存结果，key 与字段类型对应
-  uni.$emit('profileFieldSaved', {
-    type: fieldType.value,
-    value: inputValue.value.trim()
-  })
+
+  if (fieldType.value === 'title') {
+    // NOTE: 活动标题通过 Storage 回传给发起活动页，与费用/备注模式一致
+    uni.setStorageSync('editing_activity_title', inputValue.value.trim())
+  } else {
+    // NOTE: 昵称/球风通过 eventBus 通知个人设置页
+    uni.$emit('profileFieldSaved', {
+      type: fieldType.value,
+      value: inputValue.value.trim()
+    })
+  }
   uni.navigateBack()
 }
 </script>

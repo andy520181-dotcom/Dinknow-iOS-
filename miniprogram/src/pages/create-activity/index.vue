@@ -18,17 +18,15 @@
 
           <!-- 主信息卡片：标题 + 时间 + 地点 + DUPR水平 + 人数 + 费用 + 联系方式 -->
           <view class="ios-section">
-            <!-- 标题 -->
-            <view class="ios-cell ios-cell--input">
+            <!-- 标题：点击跳转编辑页，与备注栏样式统一 -->
+            <view class="ios-cell ios-cell--tap" @tap="goToTitleEdit">
               <image class="ios-cell__row-icon" src="/static/icons/biaotitubiao.png" mode="aspectFit" />
               <text class="ios-cell__label">标题</text>
-              <input
-                class="ios-cell__input ios-cell__input--right"
-                placeholder="请输入"
-                placeholder-class="ios-input-placeholder"
-                :value="title"
-                @input="onTitleInput"
-              />
+              <view class="ios-cell__value ios-cell__value--right ios-cell__value--ellipsis">
+                <text v-if="title">{{ title }}</text>
+                <text v-else class="ios-cell__placeholder">请输入</text>
+              </view>
+              <text class="ios-cell__chevron">›</text>
             </view>
 
             <!-- 时间：三列选择器（日期+星期 | 开始时间 | 结束时间） -->
@@ -348,8 +346,12 @@ const timeDisplayText = computed(() => {
   return `${dateLabel} ${timePart}`
 })
 
-// NOTE: 读取各独立编辑页（备注、费用、联系方式）保存到 Storage 的内容，回填到主表单
+// NOTE: 读取各独立编辑页（标题、备注、费用、联系方式）保存到 Storage 的内容，回填到主表单
 function syncRemarkFromStorage() {
+  // ── 标题 ──
+  const cachedTitle = uni.getStorageSync('editing_activity_title')
+  if (typeof cachedTitle === 'string' && cachedTitle) title.value = cachedTitle
+
   // ── 备注 ──
   const cached = uni.getStorageSync('editing_activity_remark')
   if (typeof cached === 'string') description.value = cached
@@ -570,9 +572,13 @@ async function handleChooseLocation() {
   }
 }
 
-// 输入/选择处理
-function onTitleInput(e: any) {
-  title.value = e?.detail?.value ?? ''
+/** 跳转到标题编辑页，通过 Storage 回传 */
+function goToTitleEdit() {
+  // NOTE: 先写入当前标题值到 Storage，编辑页读取回显
+  uni.setStorageSync('editing_activity_title', title.value || '')
+  returningFromSubPage.value = true
+  const encoded = encodeURIComponent(title.value || '')
+  uni.navigateTo({ url: `/pages/edit-text-field/index?type=title&value=${encoded}` })
 }
 // 三列时间选择器确定后同步三个值
 function onTimePickerChange(e: any) {
@@ -673,6 +679,7 @@ function handleBack() {
         if (res.confirm) {
           // 清除编辑缓存，恢复初始状态
           uni.removeStorageSync('editing_activity')
+          uni.removeStorageSync('editing_activity_title')
           uni.removeStorageSync('editing_activity_remark')
           uni.removeStorageSync('editing_activity_remark_images')
           resetForm()
@@ -922,7 +929,8 @@ function resetForm() {
   description.value = ''
   selectedDupr.value = ''
   editingActivityId.value = null
-  // NOTE: 清空备注 + 费用 + 联系方式编辑页缓存，防止下次进入时读到旧选中值
+  // NOTE: 清空标题 + 备注 + 费用 + 联系方式编辑页缓存，防止下次进入时读到旧选中值
+  uni.removeStorageSync('editing_activity_title')
   uni.removeStorageSync('editing_activity_remark')
   uni.removeStorageSync('editing_activity_remark_images')
   uni.removeStorageSync('editing_activity_fee_type')
