@@ -22,7 +22,7 @@
                   mode="aspectFill"
                 />
                 <view v-else class="avatar-preview avatar-preview--placeholder">
-                  <image class="avatar-placeholder-img" src="/static/icons/touxiang.png" mode="aspectFit" />
+                  <image class="avatar-placeholder-img" src="/static/icons/avatar-placeholder.png" mode="aspectFit" />
                 </view>
               </button>
             </view>
