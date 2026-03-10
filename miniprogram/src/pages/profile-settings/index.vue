@@ -7,7 +7,7 @@
         <view class="ios-section">
           <!-- 头像：放第一行，点击调起微信选头像 -->
           <view class="ios-cell ios-cell--avatar">
-            <image class="ios-cell__row-icon" src="/static/icons/touxiang.png" mode="aspectFit" />
+            <image class="ios-cell__row-icon" src="/static/icons/avatar-placeholder.png" mode="aspectFit" />
             <text class="ios-cell__label">头像</text>
             <view class="ios-cell__value ios-cell__value--right avatar-preview-wrap">
               <button
