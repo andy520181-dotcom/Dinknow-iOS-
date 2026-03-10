@@ -376,32 +376,33 @@ onShow(() => {
   // NOTE: 不用 position:absolute，WeChat 小程序中父无 position:relative 时绝对定位失效
   // 改为 flex 子元素，自动撑满 profile-page，背景色可正常渲染
   flex: 1;
-  min-height: 100vh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   // NOTE: 背景透明，让父容器 .profile-page 上的渐变透出
   background: transparent;
-  // NOTE: 水平边距不在这里设，而是各子区域自己设，避免微信 button 忽略父 padding
-  padding: 60px 0 52px;
+  // NOTE: 减少顶部间距，让品牌区和按钮区在一屏内可见
+  padding: 0 0 32px;
   box-sizing: border-box;
 }
 
-// NOTE: 品牌区块：Logo + 标题聚合居中，flex:1 占满上半屏，视觉聚焦
+// NOTE: 品牌区块：不再 flex:1 撑满，改为固定 padding 控制位置，让按钮区一屏内可见
 .login-brand {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  // NOTE: center 让品牌整体居于上半屏偏中位置
   justify-content: center;
+  // NOTE: 上方留适量空间让品牌居中偏上，下方留间距与按钮区自然衔接
+  padding: 80px 0 60px;
   gap: 0;
 }
 
 .login-brand-title {
   display: block;
   font-size: 20px;
-  font-weight: 400;
-  color: $ios-text-primary;
+  font-weight: 600;
+  // NOTE: 使用品牌主色，与整体渐变色系呼应
+  color: $brand-accent;
   margin-top: 20px;
   text-align: center;
 }
@@ -1121,14 +1122,13 @@ onShow(() => {
 
 // ---- 登录界面 ----
 .login-page {
-  min-height: 100vh;
+  min-height: 0;
   background: transparent;
   display: flex;
   flex-direction: column;
-  // NOTE: 左右 padding 设为 0，由 ios-section 的 margin: 0 16px 统一控制左右边距
-  padding: 0 0 $ios-spacing-xl;
+  // NOTE: 左右 padding 设为 0，顶部间距由品牌区 padding 控制
+  padding: 0 0 32px;
   box-sizing: border-box;
-  padding-top: calc(#{$ios-spacing-xl} + 30px + env(safe-area-inset-top));
 }
 
 .login-page-title {
