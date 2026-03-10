@@ -437,7 +437,7 @@ async function handleLeaveActivity(activity: Activity) {
 
 .my-activities-page {
   min-height: 100vh;
-  background: $ios-bg-secondary;
+  background: #FDF8F5;
   // NOTE: 左右内边距与广场页统一用 $ios-spacing-lg，顶部 12px，底部额外留 tab bar 高度
   padding: 12px $ios-spacing-lg;
   padding-bottom: calc(40px + env(safe-area-inset-bottom));

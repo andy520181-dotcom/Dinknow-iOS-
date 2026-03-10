@@ -1183,7 +1183,7 @@ onShareTimeline(() => {
 <style lang="scss" scoped>
 .detail-page {
   min-height: 100vh;
-  background: $ios-bg-secondary;
+  background: #FDF8F5;
   // NOTE: 底部留白加高，为免责声明行 + 报名按钮的固定浮层留出足够空间
   padding-bottom: calc(120px + env(safe-area-inset-bottom));
 }

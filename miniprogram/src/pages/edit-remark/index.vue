@@ -117,7 +117,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .remark-page {
   min-height: 100vh;
-  background: $ios-bg-secondary;
+  background: #FDF8F5;
   display: flex;
   flex-direction: column;
 }
