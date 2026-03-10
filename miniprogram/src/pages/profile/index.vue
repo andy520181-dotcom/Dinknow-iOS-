@@ -1,6 +1,6 @@
 <template>
   <view class="profile-page">
-    <CustomNavBar title="个人中心" />
+    <CustomNavBar :title="isLoggedIn ? '个人中心' : '登录'" />
     <!-- NOTE: 登录状态检查中，显示骨架屏避免白屏 -->
     <view v-if="profileChecking" class="profile-loading">
       <view class="pk-sk-hero">
