@@ -392,8 +392,8 @@ onShow(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  // NOTE: 上方留适量空间让品牌居中偏上，下方留间距与按钮区自然衔接
-  padding: 80px 0 60px;
+  // NOTE: 上方留适量空间让品牌居中偏上，下方留充足间距制造呼吸感
+  padding: 80px 0 120px;
   gap: 0;
 }
 
@@ -417,9 +417,9 @@ onShow(() => {
 
 // NOTE: 图片自带蓝色圆形背景，overflow:hidden 裁切成圆形展示
 .login-logo-circle {
-  width: 88px;
-  height: 88px;
-  border-radius: 44px;
+  width: 108px;
+  height: 108px;
+  border-radius: 54px;
   background: transparent;
   overflow: hidden;
   // 精致阴影
