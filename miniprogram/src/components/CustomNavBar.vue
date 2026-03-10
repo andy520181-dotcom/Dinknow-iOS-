@@ -61,7 +61,8 @@ onMounted(() => {
 .custom-navbar__title {
   font-size: 17px;
   font-weight: 600;
-  color: #ffffff;
+  // NOTE: 使用渐变终止色暖白，与品牌棕色背景同色系，高级感更强
+  color: #FDF8F5;
   // NOTE: 限制标题宽度，避免与右上角胶囊按钮重叠
   max-width: 60%;
   overflow: hidden;
