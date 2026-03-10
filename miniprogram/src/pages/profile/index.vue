@@ -23,7 +23,7 @@
     <view
       v-else-if="!isLoggedIn"
       class="login-page"
-      style="background: #FDF8F5;"
+      style="background: linear-gradient(to bottom, #7C4E3A 0%, #835A48 3%, #8F6756 7%, #9B7464 11%, #A88272 15%, #B59080 19%, #C2A090 23%, #CCAFA2 27%, #D6BFB4 31%, #DFCEC6 35%, #E8DDD8 39%, #F0EAE7 43%, #F6F2F0 47%, #FDF8F5 50%, #FDF8F5 100%);"
     >
 
       <!-- NOTE: 品牌区块：Logo + 标题聚合居中，占据上半屏，视觉聚焦 -->
