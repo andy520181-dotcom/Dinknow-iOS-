@@ -941,7 +941,7 @@ onShareTimeline(() => {
 .index-page {
   min-height: 100vh;
   padding-bottom: 0;
-  background: #{"linear-gradient(to bottom, #7C4E3A 0%, #835A48 3%, #8F6756 7%, #9B7464 11%, #A88272 15%, #B59080 19%, #C2A090 23%, #CCAFA2 27%, #D6BFB4 31%, #DFCEC6 35%, #E8DDD8 39%, #F0EAE7 43%, #F6F2F0 47%, #FDF8F5 50%, #FDF8F5 100%)"};
+  background: #{"linear-gradient(to bottom, #7C4E3A 0%, #8F6756 6%, #A18072 12%, #AB8D80 15%, #B49A8F 18%, #BEA69D 21%, #C7B3AB 24%, #D0C0B9 27%, #DACCC7 30%, #E3D9D5 33%, #ECE5E3 36%, #F2EDEB 39%, #F6F2F1 42%, #FDFCFB 48%, #FDF8F5 55%)"};
   overflow-x: hidden;
   overflow-y: auto;
 }

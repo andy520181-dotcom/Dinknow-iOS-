@@ -2,7 +2,7 @@
   <!-- NOTE: 未登录时渐变铺满整个页面（含导航栏区域），避免导航栏纯色与页面渐变之间的色差断层 -->
   <view
     class="profile-page"
-    :style="!isLoggedIn && !profileChecking ? { background: 'linear-gradient(to bottom, #7C4E3A 0%, #835A48 3%, #8F6756 7%, #9B7464 11%, #A88272 15%, #B59080 19%, #C2A090 23%, #CCAFA2 27%, #D6BFB4 31%, #DFCEC6 35%, #E8DDD8 39%, #F0EAE7 43%, #F6F2F0 47%, #FDF8F5 50%, #FDF8F5 100%)' } : {}"
+    :style="!isLoggedIn && !profileChecking ? { background: 'linear-gradient(to bottom, #7C4E3A 0%, #8F6756 6%, #A18072 12%, #AB8D80 15%, #B49A8F 18%, #BEA69D 21%, #C7B3AB 24%, #D0C0B9 27%, #DACCC7 30%, #E3D9D5 33%, #ECE5E3 36%, #F2EDEB 39%, #F6F2F1 42%, #FDFCFB 48%, #FDF8F5 55%)' } : {}"
   >
     <CustomNavBar :title="isLoggedIn ? '个人中心' : '登录'" />
     <!-- NOTE: 登录状态检查中，显示骨架屏避免白屏 -->
@@ -365,7 +365,7 @@ onShow(() => {
 <style lang="scss" scoped>
 .profile-page {
   min-height: 100vh;
-  background: #{"linear-gradient(to bottom, #7C4E3A 0%, #835A48 3%, #8F6756 7%, #9B7464 11%, #A88272 15%, #B59080 19%, #C2A090 23%, #CCAFA2 27%, #D6BFB4 31%, #DFCEC6 35%, #E8DDD8 39%, #F0EAE7 43%, #F6F2F0 47%, #FDF8F5 50%, #FDF8F5 100%)"};
+  background: #{"linear-gradient(to bottom, #7C4E3A 0%, #8F6756 6%, #A18072 12%, #AB8D80 15%, #B49A8F 18%, #BEA69D 21%, #C7B3AB 24%, #D0C0B9 27%, #DACCC7 30%, #E3D9D5 33%, #ECE5E3 36%, #F2EDEB 39%, #F6F2F1 42%, #FDFCFB 48%, #FDF8F5 55%)"};
   display: flex;
   flex-direction: column;
   position: relative;
