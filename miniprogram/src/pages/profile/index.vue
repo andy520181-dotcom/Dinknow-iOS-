@@ -379,8 +379,8 @@ onShow(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  // NOTE: 与全局统一
-  background: $ios-bg-secondary;
+  // NOTE: 背景透明，让父容器 .profile-page 上的渐变透出
+  background: transparent;
   // NOTE: 水平边距不在这里设，而是各子区域自己设，避免微信 button 忽略父 padding
   padding: 60px 0 52px;
   box-sizing: border-box;
