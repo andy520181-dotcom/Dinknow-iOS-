@@ -1,8 +1,24 @@
 <template>
   <view class="profile-page">
     <CustomNavBar title="个人中心" />
-    <!-- NOTE: 登录状态检查中，显示空白背景，避免已登录用户知觉登录页闪烁 -->
-    <view v-if="profileChecking" class="profile-loading" />
+    <!-- NOTE: 登录状态检查中，显示骨架屏避免白屏 -->
+    <view v-if="profileChecking" class="profile-loading">
+      <view class="pk-sk-hero">
+        <view class="pk-sk-avatar" />
+        <view class="pk-sk-line pk-sk-line--name" />
+        <view class="pk-sk-line pk-sk-line--dupr" />
+      </view>
+      <view class="pk-sk-stats">
+        <view class="pk-sk-stat-card">
+          <view class="pk-sk-line" style="width: 40%; height: 24px;" />
+          <view class="pk-sk-line pk-sk-line--sm" style="width: 60%;" />
+        </view>
+        <view class="pk-sk-stat-card">
+          <view class="pk-sk-line" style="width: 40%; height: 24px;" />
+          <view class="pk-sk-line pk-sk-line--sm" style="width: 60%;" />
+        </view>
+      </view>
+    </view>
     <!-- NOTE: 自定义全屏登录页，内联 style 确保渐变生效（绕过 scoped SCSS 编译问题） -->
     <view
       v-else-if="!isLoggedIn"
@@ -1044,7 +1060,60 @@ onShow(() => {
 
 .profile-loading {
   min-height: 100vh;
-  background: $ios-bg-secondary;
+  padding-top: 100px;
+}
+
+@keyframes pk-sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+%pk-sk-base {
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.02) 50%, rgba(0,0,0,0.06) 75%);
+  background-size: 200% 100%;
+  animation: pk-sk-shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+
+.pk-sk-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0 40px;
+}
+
+.pk-sk-avatar {
+  @extend %pk-sk-base;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+}
+
+.pk-sk-line {
+  @extend %pk-sk-base;
+  height: 14px;
+
+  &--name { width: 30%; height: 18px; }
+  &--dupr { width: 25%; height: 12px; }
+  &--sm { height: 10px; }
+}
+
+.pk-sk-stats {
+  display: flex;
+  gap: 12px;
+  padding: 24px 16px;
+}
+
+.pk-sk-stat-card {
+  flex: 1;
+  background: rgba(255,255,255,0.6);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 // ---- 登录界面 ----

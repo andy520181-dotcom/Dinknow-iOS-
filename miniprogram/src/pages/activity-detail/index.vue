@@ -1,7 +1,30 @@
 <template>
   <view class="detail-page">
-    <view v-if="loading" class="loading-container">
-      <text>加载中...</text>
+    <view v-if="loading" class="detail-skeleton">
+      <!-- NOTE: 骨架屏模拟活动详情内容结构 -->
+      <view class="sk-card">
+        <view class="sk-row">
+          <view class="sk-circle" />
+          <view class="sk-lines">
+            <view class="sk-line" style="width: 40%;" />
+            <view class="sk-line sk-line--sm" style="width: 30%;" />
+          </view>
+        </view>
+        <view class="sk-divider" />
+        <view class="sk-line" style="width: 90%;" />
+        <view class="sk-line" style="width: 75%;" />
+        <view class="sk-line" style="width: 80%;" />
+        <view class="sk-line" style="width: 60%;" />
+        <view class="sk-line" style="width: 70%;" />
+        <view class="sk-line" style="width: 50%;" />
+      </view>
+      <view class="sk-card" style="margin-top: 12px;">
+        <view class="sk-line" style="width: 30%; height: 16px;" />
+        <view class="sk-participants">
+          <view v-for="i in 4" :key="i" class="sk-circle sk-circle--sm" />
+        </view>
+      </view>
+      <view class="sk-btn" />
     </view>
     <view v-else-if="activity" class="activity-detail">
       <!-- 第一部分：按发起页顺序展示（发起人、标题、时间、地点、DUPR、人数、费用、联系方式、备注） -->
@@ -1230,6 +1253,82 @@ onShareTimeline(() => {
   background: $ios-bg-secondary;
   // NOTE: 底部留白加高，为免责声明行 + 报名按钮的固定浮层留出足够空间
   padding-bottom: calc(120px + env(safe-area-inset-bottom));
+}
+
+.detail-skeleton {
+  padding: 16px;
+}
+
+.sk-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+@keyframes sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+%sk-base {
+  background: linear-gradient(90deg, #E5E5EA 25%, #F0F0F5 50%, #E5E5EA 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+
+.sk-circle {
+  @extend %sk-base;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &--sm {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sk-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sk-line {
+  @extend %sk-base;
+  height: 14px;
+  margin-top: 10px;
+
+  &--sm { height: 10px; }
+}
+
+.sk-divider {
+  height: 0.5px;
+  background: rgba(0, 0, 0, 0.06);
+  margin: 14px 0;
+}
+
+.sk-participants {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sk-btn {
+  @extend %sk-base;
+  height: 48px;
+  border-radius: 24px;
+  margin: 20px 16px 0;
 }
 
 .loading-container,

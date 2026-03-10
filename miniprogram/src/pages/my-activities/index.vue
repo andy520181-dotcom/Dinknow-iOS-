@@ -1,7 +1,21 @@
 <template>
   <view class="my-activities-page">
-    <view v-if="loading" class="loading-wrap">
-      <text>加载中...</text>
+    <view v-if="loading" class="skeleton-list">
+      <!-- NOTE: 2 张骨架卡片模拟活动列表加载 -->
+      <view v-for="i in 2" :key="`sk-${i}`" class="sk-card">
+        <view class="sk-row">
+          <view class="sk-circle" />
+          <view class="sk-lines">
+            <view class="sk-line" style="width: 65%;" />
+            <view class="sk-line sk-line--sm" style="width: 45%;" />
+          </view>
+        </view>
+        <view class="sk-divider" />
+        <view class="sk-footer">
+          <view v-for="j in 3" :key="j" class="sk-circle sk-circle--sm" />
+          <view class="sk-line sk-line--sm" style="width: 25%; margin-left: auto;" />
+        </view>
+      </view>
     </view>
     <view v-else class="activity-list">
       <view v-if="list.length === 0" class="empty">
@@ -415,10 +429,74 @@ async function handleLeaveActivity(activity: Activity) {
   padding-bottom: calc(40px + env(safe-area-inset-bottom));
 }
 
-.loading-wrap {
-  padding: $ios-spacing-xxl;
-  text-align: center;
-  color: $ios-text-tertiary;
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@keyframes sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+%sk-base {
+  background: linear-gradient(90deg, #E5E5EA 25%, #F0F0F5 50%, #E5E5EA 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+
+.sk-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sk-circle {
+  @extend %sk-base;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &--sm {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.sk-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sk-line {
+  @extend %sk-base;
+  height: 14px;
+
+  &--sm { height: 10px; }
+}
+
+.sk-divider {
+  height: 0.5px;
+  background: rgba(0, 0, 0, 0.06);
+  margin: 12px 0 10px;
+}
+
+.sk-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .empty {

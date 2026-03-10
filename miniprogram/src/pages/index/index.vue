@@ -129,8 +129,22 @@
 
 
     <view class="activity-list">
-      <view v-if="loading && activities.length === 0" class="empty">
-        <text>加载中...</text>
+      <view v-if="loading && activities.length === 0" class="skeleton-list">
+        <!-- NOTE: 3 张骨架卡片模拟加载中的活动列表 -->
+        <view v-for="i in 3" :key="`sk-${i}`" class="skeleton-card">
+          <view class="skeleton-header">
+            <view class="skeleton-avatar" />
+            <view class="skeleton-info">
+              <view class="skeleton-line skeleton-line--title" />
+              <view class="skeleton-line skeleton-line--sub" />
+            </view>
+          </view>
+          <view class="skeleton-divider" />
+          <view class="skeleton-footer">
+            <view v-for="j in 3" :key="`sp-${j}`" class="skeleton-participant" />
+            <view class="skeleton-line skeleton-line--tag" style="margin-left: auto;" />
+          </view>
+        </view>
       </view>
       <view v-else-if="activities.length === 0" class="empty">
         <text>暂无活动</text>
