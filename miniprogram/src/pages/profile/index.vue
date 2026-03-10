@@ -29,11 +29,8 @@
       class="login-page"
     >
 
-      <!-- NOTE: 品牌区块：Logo + 标题聚合居中，占据上半屏，视觉聚焦 -->
+      <!-- NOTE: 品牌区块：纯文案居中，无 Logo，简洁高级感 -->
       <view class="login-brand">
-        <view class="login-logo-circle">
-          <image class="login-logo-img" src="/static/icons/login-avatar.png" mode="aspectFit" />
-        </view>
         <text class="login-brand-title">欢迎使用Dinkin</text>
         <text class="login-brand-subtitle">让我们一起匹克球</text>
       </view>
@@ -399,7 +396,7 @@ onShow(() => {
 
 .login-brand-title {
   display: block;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
   // NOTE: 使用品牌主色，与整体渐变色系呼应
   color: $brand-accent;
