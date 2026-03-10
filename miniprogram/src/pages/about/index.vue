@@ -61,7 +61,8 @@ onMounted(() => {
 <style lang="scss" scoped>
 .about-page {
   min-height: 100vh;
-  background: $ios-bg-secondary;
+  // NOTE: 暖白背景，统一品牌风格
+  background: #FDF8F5;
 }
 
 .about-body {
