@@ -188,6 +188,7 @@ import { getActivities, joinActivity, deleteActivity } from '../../services/acti
 import { checkLogin } from '../../services/user'
 import { getUserLocation } from '../../utils/location'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
+import { readCache, writeCache } from '../../utils/cache'
 import { useVirtualScroll } from '../../hooks/useVirtualScroll'
 
 const location = ref<LocationInfo | null>(null)
@@ -393,6 +394,16 @@ function handleDeleteActivity(activity: Activity) {
 async function loadActivities(silent = false) {
   if (!silent) loading.value = true
   try {
+    // NOTE: SWR — 先读缓存秒开，后台静默请求最新数据
+    if (!silent && allActivities.value.length === 0) {
+      const cached = readCache<Activity[]>('activities')
+      if (cached && cached.length > 0) {
+        allActivities.value = cached
+        applyFiltersAndSearch()
+        loading.value = false
+        console.log('[广场页] SWR: 从缓存加载', cached.length, '条活动')
+      }
+    }
     if (!silent) console.log('[广场页] loadActivities: 开始加载活动列表...')
     const list = await getActivities({
       latitude: location.value?.latitude,
@@ -443,6 +454,8 @@ async function loadActivities(silent = false) {
     }
 
     allActivities.value = mergedList
+    // NOTE: SWR — 请求成功后写入缓存
+    writeCache('activities', mergedList)
     
     // 应用搜索和筛选过滤
     applyFiltersAndSearch()

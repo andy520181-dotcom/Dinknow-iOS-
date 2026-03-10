@@ -48,6 +48,7 @@ import { getUserActivities, getActivityDetail, deleteActivity, leaveActivity, se
 import type { Activity } from '../../types'
 import { isActivityEnded, isActivityInProgress } from '../../utils/activity'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
+import { readCache, writeCache } from '../../utils/cache'
 import ActivityCard from '../../components/ActivityCard.vue'
 import { showErrorToast } from '../../utils/error'
 
@@ -107,6 +108,16 @@ function startListRefreshTimer() {
 async function loadList(silent = false) {
   if (!silent) loading.value = true
   try {
+    // NOTE: SWR — 先读缓存秒开，后台静默请求最新数据
+    const cacheKey = `my_activities_${type.value}`
+    if (!silent && list.value.length === 0) {
+      const cached = readCache<Activity[]>(cacheKey)
+      if (cached && cached.length > 0) {
+        list.value = cached
+        loading.value = false
+        console.log('[我的活动] SWR: 从缓存加载', cached.length, '条活动')
+      }
+    }
     const res = await getUserActivities()
     const arr = type.value === 'joined' ? (res.joined || []) : (res.created || [])
     const prevList = list.value
@@ -201,6 +212,8 @@ async function loadList(silent = false) {
     } else {
       list.value = sortActivities(normalized)
     }
+    // NOTE: SWR — 请求成功后写入缓存
+    writeCache(`my_activities_${type.value}`, list.value)
   } catch (e) {
     if (!silent) list.value = []
   } finally {

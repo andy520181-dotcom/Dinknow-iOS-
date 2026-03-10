@@ -216,6 +216,7 @@ import { getCloudImageUrl, getTempFileURLs } from '../../services/cloud'
 import { showErrorToast } from '../../utils/error'
 import { isActivityEnded, parseActivityDate } from '../../utils/activity'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
+import { readCache, writeCache } from '../../utils/cache'
 import PosterModal from '../../components/PosterModal.vue'
 import ProfileModal from '../../components/activity-detail/ProfileModal.vue'
 import ParticipantsList from '../../components/activity-detail/ParticipantsList.vue'
@@ -785,18 +786,15 @@ async function loadActivityDetail(forceRefresh = false) {
   // 先加载当前用户信息，确保能正确判断是否已报名
   await loadCurrentUser()
 
-  // 1. 非强制刷新时优先用缓存；有缓存且含头像时才先展示
+  // 1. 非强制刷新时优先用 SWR 缓存；有缓存且含头像时才先展示
   if (!forceRefresh) {
-    const activities = uni.getStorageSync('activity_detail_cache')
-    if (activities && Array.isArray(activities)) {
-      const found = activities.find((a: Activity) => a._id === activityId.value)
-      if (found && found.hostAvatar) {
-        const currentUserCache = getCurrentUserFromCache()
-        activity.value = currentUserCache ? mergeCurrentUserAvatar(found, currentUserCache) : found
-        loading.value = false
-        // NOTE: 立即解析缓存中的 cloud:// URL，避免 uni-app 不支持此协议导致图片加载失败
-        resolveDetailCloudUrls()
-      }
+    const cached = readCache<Activity>(`detail_${activityId.value}`)
+    if (cached && cached.hostAvatar) {
+      const currentUserCache = getCurrentUserFromCache()
+      activity.value = currentUserCache ? mergeCurrentUserAvatar(cached, currentUserCache) : cached
+      loading.value = false
+      // NOTE: 立即解析缓存中的 cloud:// URL
+      resolveDetailCloudUrls()
     }
   }
 
@@ -845,13 +843,8 @@ async function loadActivityDetail(forceRefresh = false) {
       activity.value = finalMerged as Activity
       // NOTE: 解析最新数据中的 cloud:// URL， uni-app 不支持此协议直接作为 image src
       resolveDetailCloudUrls()
-      // 更新缓存，便于从其他页返回时一致（缓存用合并后的数据，避免下次进入仍用旧 URL）
-      const activities = uni.getStorageSync('activity_detail_cache') || []
-      const idx = activities.findIndex((a: Activity) => a._id === activityId.value)
-      const next = Array.isArray(activities) ? [...activities] : []
-      if (idx >= 0) next[idx] = finalMerged
-      else next.push(finalMerged)
-      uni.setStorageSync('activity_detail_cache', next)
+      // NOTE: SWR — 以 activityId 为 key 写入缓存
+      writeCache(`detail_${activityId.value}`, finalMerged)
     }
   } catch (error) {
     console.warn('getActivityDetail 未部署或调用失败，使用缓存数据:', error)
