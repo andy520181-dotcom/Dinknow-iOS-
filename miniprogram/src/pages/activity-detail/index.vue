@@ -130,43 +130,14 @@
         </view>
       </view>
 
-      <!-- 第二部分：发起人 + 报名用户头像（最多 15 个，超出 +N） -->
-      <view class="participants-section">
-        <text class="section-title">匹克球搭子</text>
-        <view class="participants-list">
-          <!-- 已报名用户头像 -->
-          <view
-            v-for="(item, idx) in displayedParticipants"
-            :key="item.userId || idx"
-            class="participant-item"
-            :class="{ 'participant-item--leaving': item.leaving }"
-            @tap="handleViewProfile(item.userId)"
-          >
-            <view class="participant-avatar-container">
-              <!-- NOTE: key 绑定 userId 而非 avatarUrl，避免 URL 变化时节点销毁重建导致闪烁 -->
-              <!-- NOTE: 与发起人头像同策略：灰色容器占位，@load 后淡入，防止头像突然弹出 -->
-              <view class="participant-avatar-wrap-large">
-                <image
-                  :src="item.avatarUrl ? resolveCloudUrl(item.avatarUrl) : ''"
-                  class="participant-avatar-inner"
-                  :class="{ 'participant-avatar-inner--loaded': loadedParticipantAvatars.has(item.userId) }"
-                  mode="aspectFill"
-                  @load="loadedParticipantAvatars = new Set(loadedParticipantAvatars).add(item.userId)"
-                />
-              </view>
-            </view>
-            <text class="participant-name-large">{{ item.nickName || '匹克球友' }}</text>
-          </view>
-
-          <!-- NOTE: "+" 占位圆：未满额且未结束时显示，不限人数 -->
-          <view v-if="showAddSlot" class="participant-item">
-            <view class="participant-add-slot-large">
-              <text class="participant-add-text-large">+</text>
-            </view>
-            <text class="participant-name-large"></text>
-          </view>
-        </view>
-      </view>
+      <!-- 第二部分：搭子列表子组件 -->
+      <ParticipantsList
+        :participants="displayedParticipantsResolved"
+        :show-add-slot="showAddSlot"
+        :loaded-avatars="loadedParticipantAvatars"
+        @open-profile="handleViewProfile"
+        @avatar-loaded="(uid) => loadedParticipantAvatars = new Set(loadedParticipantAvatars).add(uid)"
+      />
 
 
       <!-- NOTE: 报名已截止提示：非发起人且非已参与且 status=closed 时展示，代替隐藏按钮，避免用户疑惑 -->
@@ -202,56 +173,14 @@
       <text>活动不存在</text>
     </view>
 
-    <!-- 点击头像：查看个人资料弹层（头像、昵称、性别、地区、DUPR、球风），不再跳转个人页 -->
-    <view v-if="showProfileModal" class="profile-modal-overlay" @tap="closeProfileModal">
-      <view class="profile-modal" @tap.stop>
-        <view class="profile-modal-header">
-          <text class="profile-modal-title">个人资料</text>
-          <view class="profile-modal-close" @tap="closeProfileModal">
-            <text class="close-icon">×</text>
-          </view>
-        </view>
-        <view class="profile-modal-content" :key="'profile-' + (profileUser?.openid || '') + '-' + (profileUser?.region ?? '') + '-' + (profileUser?.signature ?? '')">
-          <template v-if="profileUser">
-            <view class="profile-avatar-section">
-              <!-- NOTE: 点击头像调起微信内置大图预览 -->
-              <image
-                v-if="profileUser.avatarUrl"
-                :src="resolveCloudUrl(profileUser.avatarUrl)"
-                class="profile-modal-avatar"
-                mode="aspectFill"
-                @tap="previewProfileAvatar"
-              />
-              <view v-else class="profile-modal-avatar-placeholder">
-                <text class="avatar-placeholder-icon-large">👤</text>
-              </view>
-            </view>
-            <view class="profile-info-section">
-              <view class="profile-info-item">
-                <text class="profile-info-label">昵称</text>
-                <text class="profile-info-value">{{ profileUser.nickName || '匹克球友' }}</text>
-              </view>
-              <view class="profile-info-item">
-                <text class="profile-info-label">性别</text>
-                <text class="profile-info-value">{{ profileGenderText }}</text>
-              </view>
-              <view class="profile-info-item">
-                <text class="profile-info-label">地区</text>
-                <text class="profile-info-value">{{ (profileUser as any)?.region && String((profileUser as any).region).trim() ? String((profileUser as any).region).trim() : '未设置' }}</text>
-              </view>
-              <view class="profile-info-item">
-                <text class="profile-info-label">DUPR 水平</text>
-                <text class="profile-info-value">{{ profileDuprText }}</text>
-              </view>
-              <view class="profile-info-item">
-                <text class="profile-info-label">球风</text>
-                <text class="profile-info-value">{{ (profileUser as any)?.signature && String((profileUser as any).signature).trim() ? String((profileUser as any).signature).trim() : '未设置' }}</text>
-              </view>
-            </view>
-          </template>
-        </view>
-      </view>
-    </view>
+    <!-- NOTE: 个人资料弹层子组件 -->
+    <ProfileModal
+      :visible="showProfileModal"
+      :user="profileUser"
+      :resolved-avatar-url="profileUser?.avatarUrl ? resolveCloudUrl(profileUser.avatarUrl) : ''"
+      @close="closeProfileModal"
+      @preview-avatar="previewProfileAvatar"
+    />
     <!-- NOTE: 三点按钮弹出自定义底部菜单，直接操作无需中间弹窗 -->
     <view v-if="showMoreSheet" class="more-sheet-overlay" @tap="showMoreSheet = false">
       <view class="more-sheet" @tap.stop>
@@ -288,6 +217,8 @@ import { showErrorToast } from '../../utils/error'
 import { isActivityEnded, parseActivityDate } from '../../utils/activity'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
 import PosterModal from '../../components/PosterModal.vue'
+import ProfileModal from '../../components/activity-detail/ProfileModal.vue'
+import ParticipantsList from '../../components/activity-detail/ParticipantsList.vue'
 // NOTE: 静态 import，微信小程序不支持动态 import()
 import { generatePoster } from '../../composables/usePoster'
 import { getCurrentInstance } from 'vue'
@@ -509,6 +440,14 @@ const displayedParticipants = computed(() => {
 
 // NOTE: 未满额且未结束时显示 "+" 占位圆
 const showAddSlot = computed(() => !isFull.value && !isEnded.value)
+
+// NOTE: 为 ParticipantsList 子组件提供预解析 cloud URL 的参与者列表
+const displayedParticipantsResolved = computed(() =>
+  displayedParticipants.value.map(p => ({
+    ...p,
+    resolvedAvatarUrl: p.avatarUrl ? resolveCloudUrl(p.avatarUrl) : '',
+  }))
+)
 
 const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 // 与广场活动卡一致：无 endTime 或 endTime 与 startTime 相同时，截止时间显示为开始时间+1小时
@@ -1569,327 +1508,6 @@ onShareTimeline(() => {
   color: $ios-text-primary;
 }
 
-.participants-section {
-  background: $ios-bg-primary;
-  border-radius: $ios-radius-lg;
-  padding: $ios-spacing-lg;
-  margin-bottom: $ios-spacing-md;
-  // NOTE: 防止头像超出卡片边界，隐藏滚动条
-  overflow: hidden;
-}
-
-.section-title {
-  font-size: 16px;
-  color: $ios-text-primary;
-  margin-bottom: 16px;
-  display: block;
-}
-
-// NOTE: 固定 5 列网格，与广场页一致，用 rpx 保证不同屏幕等比缩放
-.participants-list {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  justify-items: center;
-  gap: 24rpx;
-}
-
-.participant-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  // NOTE: 宽度自适应 grid 列宽，不再固定 80px，防止超出卡片
-  width: 100%;
-  max-width: 80px;
-  cursor: pointer;
-  // NOTE: 新报名时头像平滑淡入
-  animation: avatarFadeIn 0.8s ease;
-
-  &:active {
-    opacity: 0.7;
-  }
-
-  // NOTE: 退出时头像平滑淡出
-  &--leaving {
-    animation: avatarFadeOut 0.8s ease forwards;
-    pointer-events: none;
-  }
-}
-
-@keyframes avatarFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes avatarFadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-.participant-avatar-container {
-  position: relative;
-  margin-bottom: 8px;
-  // NOTE: 圆形裁切，使发起人半圆徽章不超出头像范围
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  overflow: hidden;
-}
-
-// NOTE: 参与者头像包裹容器：始终显示灰色占位圆，image 用 CSS fadeIn 动画淡入
-// NOTE: 容器灰色骨架占位，图片加载完成前显示灰底，消除空白→图片突然出现的弹出感
-.participant-avatar-wrap-large {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #E5E5EA;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-}
-
-// NOTE: 与发起人头像 / ActivityCard 头像统一：默认透明，@load 后淡入，过渡 0.25s
-.participant-avatar-inner {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  display: block;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-
-  &--loaded {
-    opacity: 1;
-  }
-}
-
-.participant-avatar-placeholder-large {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: $ios-bg-tertiary;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar-placeholder-icon {
-  font-size: 24px;
-  opacity: 0.4;
-}
-
-
-// NOTE: 空心虚线圆：最简洁的「空位可加入」占位符
-.participant-add-slot-large {
-  position: relative;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  border: 1.5px dashed rgba(0, 0, 0, 0.22);
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-
-.participant-add-text-large {
-  position: relative;
-  z-index: 1;
-  font-size: 24px;
-  font-weight: 300;
-  color: rgba(0, 0, 0, 0.35);
-  line-height: 1;
-}
-
-// NOTE: 搭子栏 +N 溢出圆
-.participant-overflow-slot-large {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: $ios-bg-tertiary;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.participant-overflow-text-large {
-  font-size: 12px;
-  font-weight: 600;
-  color: $ios-text-secondary;
-  line-height: 1;
-}
-
-// NOTE: 发起人半圆徽章，与个人页 profile-edit-badge 完全一致
-.host-badge {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 22px;
-  background: rgba(100, 100, 108, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: #ffffff;
-  white-space: nowrap;
-}
-
-.participant-name-large {
-  font-size: 12px;
-  color: $ios-text-primary;
-  text-align: center;
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 参与人员超出 16 个时的省略展示（+N），与广场页活动卡一致 */
-.participant-item--overflow {
-  cursor: default;
-  pointer-events: none;
-}
-.participant-avatar-container--overflow {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  border: 2px solid $ios-separator;
-  background: $ios-bg-tertiary;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.participant-overflow-text {
-  font-size: 12px;
-  font-weight: 600;
-  color: $ios-text-secondary;
-}
-.participant-name-large--overflow {
-  color: $ios-text-tertiary;
-}
-
-// 用户资料弹窗
-.profile-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: $ios-spacing-lg;
-}
-
-.profile-modal {
-  width: 100%;
-  max-width: 400px;
-  background: $ios-bg-primary;
-  border-radius: $ios-radius-lg;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-
-.profile-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: $ios-spacing-lg;
-  border-bottom: 0.5px solid $ios-separator;
-}
-
-.profile-modal-title {
-  font-size: 16px;
-  font-weight: $ios-font-weight-semibold;
-  color: $ios-text-primary;
-}
-
-.profile-modal-close {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  
-  &:active {
-    opacity: 0.7;
-  }
-}
-
-.close-icon {
-  font-size: 24px;
-  color: $ios-text-tertiary;
-  line-height: 1;
-}
-
-.profile-modal-content {
-  padding: $ios-spacing-lg;
-}
-
-.profile-avatar-section {
-  display: flex;
-  justify-content: center;
-  margin-bottom: $ios-spacing-lg;
-}
-
-.profile-modal-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: $ios-bg-tertiary;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-.profile-modal-avatar-placeholder {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: $ios-bg-tertiary;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar-placeholder-icon-large {
-  font-size: 28px;
-  opacity: 0.4;
-}
-
-.profile-info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.profile-info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.profile-info-label {
-  font-size: 12px;
-  color: $ios-text-tertiary;
-  font-weight: $ios-font-weight-medium;
-}
-
-.profile-info-value {
-  font-size: 16px;
-  color: $ios-text-primary;
-  font-weight: $ios-font-weight-regular;
-}
-
-.profile-loading {
-  text-align: center;
-  padding: $ios-spacing-xl;
-  color: $ios-text-tertiary;
-  font-size: 16px;
-}
 
 // 立即报名按钮
 // NOTE: 发起人截止报名后，非报名用户看到的状态提示条，样式与 join-section 对齐
