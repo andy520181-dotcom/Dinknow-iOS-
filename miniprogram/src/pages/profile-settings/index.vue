@@ -92,18 +92,7 @@
 
         <!-- ── 关于 Dinkin ── -->
         <view class="ios-section">
-          <!-- 用户协议 -->
-          <view class="ios-cell" @tap="openAgreement('user')">
-            <image class="ios-cell__row-icon" src="/static/icons/yonghuxieyi.png" mode="aspectFit" />
-            <text class="ios-cell__label">用户协议</text>
-            <text class="ios-cell__chevron">›</text>
-          </view>
-          <!-- 隐私政策 -->
-          <view class="ios-cell" @tap="openAgreement('privacy')">
-            <image class="ios-cell__row-icon" src="/static/icons/yinsizhengce.png" mode="aspectFit" />
-            <text class="ios-cell__label">隐私政策</text>
-            <text class="ios-cell__chevron">›</text>
-          </view>
+
           <!-- NOTE: 联系客服使用微信原生 open-type=contact -->
           <view class="ios-cell">
             <image class="ios-cell__row-icon" src="/static/icons/kefu.png" mode="aspectFit" />

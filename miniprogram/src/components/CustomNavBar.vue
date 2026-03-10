@@ -7,7 +7,7 @@
     >
       <!-- NOTE: 子页面返回按钮，与系统返回箭头风格一致 -->
       <view v-if="showBack" class="custom-navbar__back" @tap="goBack">
-        <text class="custom-navbar__back-icon">‹</text>
+        <text class="custom-navbar__back-icon" :style="{ color: backColor }">‹</text>
       </view>
       <text v-if="title" class="custom-navbar__title">{{ title }}</text>
     </view>
@@ -21,9 +21,13 @@ interface Props {
   title?: string
   /** 是否显示左上角返回箭头，子页面使用 */
   showBack?: boolean
+  /** 返回箭头颜色，默认暖白（深色背景），浅色背景页面传 #333 */
+  backColor?: string
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  backColor: '#FDF8F5'
+})
 
 /** 返回上一页 */
 function goBack() {

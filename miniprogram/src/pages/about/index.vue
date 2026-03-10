@@ -1,6 +1,6 @@
 <template>
   <view class="about-page">
-    <CustomNavBar title="关于我们" :showBack="true" />
+    <CustomNavBar title="关于我们" :showBack="true" backColor="#333333" />
 
     <view class="about-body">
 
