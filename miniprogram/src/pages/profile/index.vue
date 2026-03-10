@@ -1122,7 +1122,7 @@ onShow(() => {
 // ---- 登录界面 ----
 .login-page {
   min-height: 100vh;
-  background: $ios-bg-secondary;
+  background: transparent;
   display: flex;
   flex-direction: column;
   // NOTE: 左右 padding 设为 0，由 ios-section 的 margin: 0 16px 统一控制左右边距

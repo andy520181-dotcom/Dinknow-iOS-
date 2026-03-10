@@ -19,7 +19,7 @@
       "path": "pages/profile/index",
       "style": {
         "navigationStyle": "custom",
-        "backgroundColor": "#7C4E3A"
+        "backgroundColor": "#FFFFFF"
       }
     },
     {
