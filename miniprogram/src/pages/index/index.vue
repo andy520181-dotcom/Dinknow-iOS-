@@ -150,8 +150,10 @@
         <text>暂无活动</text>
       </view>
       <template v-else>
+        <!-- NOTE: 虚拟滚动占位 —— 上方不在视口内的项用等高空块替代 -->
+        <view v-if="vs.enabled.value" :style="{ height: vs.paddingTop.value + 'px' }" />
         <ActivityCard
-          v-for="(activity, idx) in activities"
+          v-for="{ item: activity, index: idx } in vs.enabled.value ? vs.visibleItems.value : activities.map((item, index) => ({ item, index }))"
           :key="activity._id || `act-${idx}`"
           :activity="activity"
           :isOwner="activity.hostId != null && activity.hostId === myOpenId"
@@ -168,6 +170,8 @@
           @edit="handleEditActivity"
           @delete="handleDeleteActivity"
         />
+        <!-- NOTE: 虚拟滚动占位 —— 下方不在视口内的项用等高空块替代 -->
+        <view v-if="vs.enabled.value" :style="{ height: vs.paddingBottom.value + 'px' }" />
       </template>
     </view>
   </view>
@@ -175,7 +179,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { onLoad, onPullDownRefresh, onShow, onHide, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onShow, onHide, onShareAppMessage, onShareTimeline, onPageScroll } from '@dcloudio/uni-app'
 import { showErrorToast } from '../../utils/error'
 import ActivityCard from '../../components/ActivityCard.vue'
 import CustomNavBar from '../../components/CustomNavBar.vue'
@@ -184,11 +188,24 @@ import { getActivities, joinActivity, deleteActivity } from '../../services/acti
 import { checkLogin } from '../../services/user'
 import { getUserLocation } from '../../utils/location'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
+import { useVirtualScroll } from '../../hooks/useVirtualScroll'
 
 const location = ref<LocationInfo | null>(null)
 const activities = ref<Activity[]>([])
 const allActivities = ref<Activity[]>([]) // 存储所有活动数据，用于搜索过滤
 const loading = ref(false)
+
+// NOTE: 虚拟滚动 — 预估卡片高度约 180px，搜索栏+筛选区约 140px 偏移
+const vs = useVirtualScroll(activities, {
+  itemHeight: 180,
+  listOffsetTop: 140,
+  buffer: 3,
+  threshold: 20,
+})
+
+// NOTE: 页面滚动事件委托给虚拟滚动 Hook
+onPageScroll((e) => vs.handlePageScroll(e))
+
 const selectedFilter = ref('') // 默认不选择任何筛选
 const locationRequested = ref(false) // 防止重复请求位置
 const currentCity = ref('定位中') // 当前城市名称
@@ -841,6 +858,8 @@ function handleAvatarUpdated() {
 // 微信系统会自动弹出位置授权弹窗（基础库 >= 3.4.2 会自动附带隐私协议勾选）
 // 隐私保护指引已在公众平台后台配置完成
 onMounted(async () => {
+  // NOTE: 虚拟滚动初始化屏幕高度
+  vs.initScreenHeight()
   // 监听全局事件
   uni.$on('activity-joined', handleActivityJoined)
   uni.$on('activity-left', handleActivityJoined) // 退出活动也刷新列表
