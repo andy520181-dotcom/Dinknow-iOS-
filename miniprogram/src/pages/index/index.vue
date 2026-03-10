@@ -176,6 +176,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { onLoad, onPullDownRefresh, onShow, onHide, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
+import { showErrorToast } from '../../utils/error'
 import ActivityCard from '../../components/ActivityCard.vue'
 import CustomNavBar from '../../components/CustomNavBar.vue'
 import type { Activity, LocationInfo } from '../../types'
@@ -365,7 +366,7 @@ function handleDeleteActivity(activity: Activity) {
         await loadActivities()
       } catch (err: any) {
         uni.hideLoading()
-        uni.showToast({ title: err?.errMsg || err?.message || '删除失败', icon: 'none' })
+        showErrorToast(err, '删除失败，请稍后再试')
       }
     }
   })
@@ -751,7 +752,7 @@ async function handleJoin(activity: Activity) {
     uni.showToast({ title: '加入成功', icon: 'success' })
     loadActivities()
   } catch (error: any) {
-    uni.showToast({ title: error.errMsg || error.message || '加入失败', icon: 'none' })
+    showErrorToast(error, '加入失败，请稍后再试')
   }
 }
 

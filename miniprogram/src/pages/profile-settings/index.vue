@@ -148,6 +148,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { login, getProfile, updateProfile } from '../../services/user'
 import { getTempFileURLs, callCloudFunction, clearCloudUrlCache } from '../../services/cloud'
+import { showErrorToast } from '../../utils/error'
 import type { User } from '../../types'
 
 const genderOptions = ['保密', '男', '女']
@@ -283,7 +284,7 @@ async function saveProfile() {
     } catch {}
     uni.showToast({ title: '已保存', icon: 'success' })
   } catch (error: any) {
-    uni.showToast({ title: error?.errMsg || error?.message || '保存失败', icon: 'none' })
+    showErrorToast(error, '保存失败，请稍后再试')
   } finally {
     saving.value = false
   }

@@ -225,6 +225,7 @@ import { createActivity, updateActivity } from '../../services/activity'
 import { getUserActivities } from '../../services/activity'
 import { getProfile } from '../../services/user'
 import { callCloudFunction } from '../../services/cloud'
+import { showErrorToast } from '../../utils/error'
 import { chooseLocation } from '../../utils/location'
 import type { LocationInfo, User, Activity } from '../../types'
 import { STORAGE_USER_LOCATION } from '../../constants'
@@ -931,7 +932,7 @@ async function handleSubmit() {
       uni.switchTab({ url: '/pages/index/index' })
     }, 600)
   } catch (error: any) {
-    uni.showToast({ title: error?.errMsg || error?.message || '操作失败', icon: 'none' })
+    showErrorToast(error, '操作失败，请稍后再试')
   } finally {
     submitting.value = false
   }

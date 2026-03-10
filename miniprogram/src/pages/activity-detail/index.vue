@@ -284,6 +284,7 @@ import type { Activity, User } from '../../types'
 import { getActivityDetail, joinActivity } from '../../services/activity'
 import { getProfile, checkLogin } from '../../services/user'
 import { getCloudImageUrl, getTempFileURLs } from '../../services/cloud'
+import { showErrorToast } from '../../utils/error'
 import { isActivityEnded, parseActivityDate } from '../../utils/activity'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
 import PosterModal from '../../components/PosterModal.vue'
@@ -1202,7 +1203,7 @@ async function handleJoin() {
     await loadCurrentUser()
   } catch (error: any) {
     console.error('报名失败:', error)
-    uni.showToast({ title: error.errMsg || error.message || '报名失败', icon: 'none' })
+    showErrorToast(error, '报名失败，请稍后再试')
   } finally {
     joining.value = false
   }

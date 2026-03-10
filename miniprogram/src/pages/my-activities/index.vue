@@ -49,6 +49,7 @@ import type { Activity } from '../../types'
 import { isActivityEnded, isActivityInProgress } from '../../utils/activity'
 import { getCurrentUserFromCache, mergeCurrentUserAvatar } from '../../utils/avatarSync'
 import ActivityCard from '../../components/ActivityCard.vue'
+import { showErrorToast } from '../../utils/error'
 
 const type = ref<'joined' | 'created'>('joined')
 const list = ref<Activity[]>([])
@@ -324,7 +325,7 @@ async function handleDeleteActivity(activity: Activity) {
         await loadList()
       } catch (err: any) {
         uni.hideLoading()
-        uni.showToast({ title: err?.errMsg || err?.message || '删除失败', icon: 'none' })
+        showErrorToast(err, '删除失败，请稍后再试')
       }
     }
   })
@@ -411,7 +412,7 @@ async function handleLeaveActivity(activity: Activity) {
         await loadList()
       } catch (err: any) {
         uni.hideLoading()
-        uni.showToast({ title: err?.errMsg || err?.message || '操作失败', icon: 'none' })
+        showErrorToast(err, '操作失败，请稍后再试')
       }
     }
   })
