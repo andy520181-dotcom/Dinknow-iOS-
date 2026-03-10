@@ -7,7 +7,7 @@
         <view class="ios-section">
           <!-- 头像：放第一行，点击调起微信选头像 -->
           <view class="ios-cell ios-cell--avatar">
-            <image class="ios-cell__row-icon" src="/static/icons/avatar-placeholder.png" mode="aspectFit" />
+            <image class="ios-cell__row-icon" src="/static/icons/yonghutouxiang.png" mode="aspectFit" />
             <text class="ios-cell__label">头像</text>
             <view class="ios-cell__value ios-cell__value--right avatar-preview-wrap">
               <button
@@ -21,8 +21,9 @@
                   :src="resolvedAvatarUrl"
                   mode="aspectFill"
                 />
+                <!-- NOTE: 占位框与编辑联系方式页微信二维码占位风格一致：浅灰背景 + 相机图标 -->
                 <view v-else class="avatar-preview avatar-preview--placeholder">
-                  <image class="avatar-placeholder-img" src="/static/icons/avatar-placeholder.png" mode="aspectFit" />
+                  <image class="avatar-placeholder-img" src="/static/icons/xiangji.png" mode="aspectFit" />
                 </view>
               </button>
             </view>
@@ -557,7 +558,8 @@ function handleLogout() {
   overflow: hidden;
 
   &--placeholder {
-    background: #e5e5ea;
+    // NOTE: 浅灰圆角背景，与编辑联系方式页微信二维码占位框风格一致
+    background: $ios-bg-secondary;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -565,9 +567,9 @@ function handleLogout() {
 }
 
 .avatar-placeholder-img {
-  width: 22px;
-  height: 22px;
-  opacity: 0.5;
+  width: 18px;
+  height: 18px;
+  opacity: 0.45;
 }
 
 // ── 性别 Action Sheet ──
