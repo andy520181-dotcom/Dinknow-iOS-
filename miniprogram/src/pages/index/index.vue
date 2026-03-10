@@ -199,7 +199,7 @@ const loading = ref(false)
 const vs = useVirtualScroll(activities, {
   itemHeight: 180,
   listOffsetTop: 140,
-  buffer: 3,
+  buffer: 5,
   threshold: 20,
 })
 
