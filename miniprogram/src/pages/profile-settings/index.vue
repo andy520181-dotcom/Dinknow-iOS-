@@ -111,6 +111,12 @@
             <button class="contact-btn" open-type="contact">联系</button>
             <text class="ios-cell__chevron">›</text>
           </view>
+          <!-- 关于我们：跳转 about 页展示备案号、版本、协议 -->
+          <view class="ios-cell" @tap="goAbout">
+            <image class="ios-cell__row-icon" src="/static/icons/guanyubanben.png" mode="aspectFit" />
+            <text class="ios-cell__label">关于我们</text>
+            <text class="ios-cell__chevron">›</text>
+          </view>
           <!-- 当前版本：无交互，仅展示 -->
           <view class="ios-cell">
             <image class="ios-cell__row-icon" src="/static/icons/guanyubanben.png" mode="aspectFit" />
@@ -380,6 +386,11 @@ async function selectPickerOption(value: string) {
 
 function closePickerModal() {
   showPickerModal.value = false
+}
+
+/** 跳转到「关于我们」页面 */
+function goAbout() {
+  uni.navigateTo({ url: '/pages/about/index' })
 }
 
 /**

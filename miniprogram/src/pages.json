@@ -79,6 +79,13 @@
       }
     },
     {
+      "path": "pages/about/index",
+      "style": {
+        "navigationBarTitleText": "关于我们",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/user-agreement/index",
       "style": {
         "navigationBarTitleText": "用户协议"
