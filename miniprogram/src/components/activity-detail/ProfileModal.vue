@@ -54,7 +54,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { User } from '../../types'
-import { getDuprDisplayText } from '../../utils/activity'
 
 interface Props {
   /** 弹窗显隐 */
@@ -73,6 +72,25 @@ defineEmits<{
 }>()
 
 const GENDER_MAP: Record<number, string> = { 0: '保密', 1: '男', 2: '女' }
+
+// NOTE: DUPR 水平映射表，与 activity-detail 主页面保持一致
+const DUPR_LEVELS = [
+  { value: '1.0-2.5', display: '初级 1.0-2.5' },
+  { value: '3.0-3.5', display: '中级 3.0-3.5' },
+  { value: '4.0-4.5', display: '高级 4.0-4.5' },
+  { value: '5.0+', display: '专业级 5.0+' },
+]
+
+/**
+ * 根据 DUPR 值获取展示文本
+ * @param duprValue DUPR 水平值
+ * @returns 展示文本
+ */
+function getDuprDisplayText(duprValue?: string): string {
+  if (!duprValue) return '未设置'
+  const matched = DUPR_LEVELS.find(l => l.value === duprValue)
+  return matched ? matched.display : duprValue
+}
 
 const genderText = computed(() => {
   if (!props.user) return ''
