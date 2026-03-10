@@ -1198,13 +1198,15 @@ onShow(() => {
 
 .create-back-icon {
   font-size: 24px;
-  color: #333333;
+  // NOTE: 暖白色，与顶部渐变背景搭配更有质感
+  color: #FDF8F5;
   margin-right: 2px;
 }
 
 .create-back-text {
   font-size: 16px;
-  color: #333333;
+  // NOTE: 暖白色，与箭头图标保持一致
+  color: #FDF8F5;
 }
 
 // NOTE: 发起人行：头像紧贴标签右侧、昵称占剩余布局并靠右
