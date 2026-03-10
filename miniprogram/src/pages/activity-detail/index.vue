@@ -1098,8 +1098,8 @@ async function handleJoin() {
     uni.requestSubscribeMessage({
       tmplIds: [
         '53-eN2jMxIxsMvxl7FOspewFtigQ6MKb0tedLxY6g18', // 报名成功通知
-        'b8AL_GV0DSTErOB8Nf9gEIkToN74gNAo_TYH56y9pEE', // 报名截止通知
         'aiot1Xyg2C0SOU8vDww1hCop-VGNgHgHM5WP1yR5D30', // 活动取消通知
+        'EqXTvFrQTTRP6vjDMk1GQw-T7-yjC6CrPTFfCXKlwPU', // 活动开始通知（即将开始提醒）
       ],
       complete: () => resolve()
     })
