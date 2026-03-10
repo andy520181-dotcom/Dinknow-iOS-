@@ -1,5 +1,9 @@
 <template>
-  <view class="profile-page">
+  <!-- NOTE: 未登录时渐变铺满整个页面（含导航栏区域），避免导航栏纯色与页面渐变之间的色差断层 -->
+  <view
+    class="profile-page"
+    :style="!isLoggedIn && !profileChecking ? { background: 'linear-gradient(to bottom, #7C4E3A 0%, #835A48 3%, #8F6756 7%, #9B7464 11%, #A88272 15%, #B59080 19%, #C2A090 23%, #CCAFA2 27%, #D6BFB4 31%, #DFCEC6 35%, #E8DDD8 39%, #F0EAE7 43%, #F6F2F0 47%, #FDF8F5 50%, #FDF8F5 100%)' } : {}"
+  >
     <CustomNavBar :title="isLoggedIn ? '个人中心' : '登录'" />
     <!-- NOTE: 登录状态检查中，显示骨架屏避免白屏 -->
     <view v-if="profileChecking" class="profile-loading">
@@ -19,11 +23,10 @@
         </view>
       </view>
     </view>
-    <!-- NOTE: 自定义全屏登录页，内联 style 确保渐变生效（绕过 scoped SCSS 编译问题） -->
+    <!-- NOTE: 登录页内容区，背景透明（渐变已在父容器上） -->
     <view
       v-else-if="!isLoggedIn"
       class="login-page"
-      style="background: linear-gradient(to bottom, #7C4E3A 0%, #835A48 3%, #8F6756 7%, #9B7464 11%, #A88272 15%, #B59080 19%, #C2A090 23%, #CCAFA2 27%, #D6BFB4 31%, #DFCEC6 35%, #E8DDD8 39%, #F0EAE7 43%, #F6F2F0 47%, #FDF8F5 50%, #FDF8F5 100%);"
     >
 
       <!-- NOTE: 品牌区块：Logo + 标题聚合居中，占据上半屏，视觉聚焦 -->
