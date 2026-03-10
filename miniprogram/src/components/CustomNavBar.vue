@@ -84,7 +84,8 @@ onMounted(() => {
 .custom-navbar__back-icon {
   font-size: 28px;
   font-weight: 300;
-  color: #FDF8F5;
+  // NOTE: 深灰色箭头，与发起活动页返回按钮颜色一致
+  color: #333333;
   line-height: 1;
 }
 

@@ -117,12 +117,7 @@
             <text class="ios-cell__label">关于我们</text>
             <text class="ios-cell__chevron">›</text>
           </view>
-          <!-- 当前版本：无交互，仅展示 -->
-          <view class="ios-cell">
-            <image class="ios-cell__row-icon" src="/static/icons/guanyubanben.png" mode="aspectFit" />
-            <text class="ios-cell__label">当前版本</text>
-            <text class="ios-cell__value">v{{ appVersion }}</text>
-          </view>
+
         </view>
 
         <!-- ── 退出登录按钮 ── -->
