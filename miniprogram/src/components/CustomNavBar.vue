@@ -5,6 +5,10 @@
       class="custom-navbar__title-bar"
       :style="{ height: navBarHeight + 'px' }"
     >
+      <!-- NOTE: 子页面返回按钮，与系统返回箭头风格一致 -->
+      <view v-if="showBack" class="custom-navbar__back" @tap="goBack">
+        <text class="custom-navbar__back-icon">‹</text>
+      </view>
       <text v-if="title" class="custom-navbar__title">{{ title }}</text>
     </view>
   </view>
@@ -15,9 +19,16 @@ import { ref, onMounted } from 'vue'
 
 interface Props {
   title?: string
+  /** 是否显示左上角返回箭头，子页面使用 */
+  showBack?: boolean
 }
 
 defineProps<Props>()
+
+/** 返回上一页 */
+function goBack() {
+  uni.navigateBack()
+}
 
 // NOTE: 状态栏高度，不同设备不同（刘海屏 ~44px，非刘海 ~20px）
 const statusBarHeight = ref(20)
@@ -56,6 +67,25 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   position: relative;
+}
+
+// NOTE: 返回按钮绝对定位在左侧，不影响标题居中
+.custom-navbar__back {
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  z-index: 1;
+}
+
+.custom-navbar__back-icon {
+  font-size: 28px;
+  font-weight: 300;
+  color: #FDF8F5;
+  line-height: 1;
 }
 
 .custom-navbar__title {

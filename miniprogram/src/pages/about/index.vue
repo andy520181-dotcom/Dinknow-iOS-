@@ -1,6 +1,6 @@
 <template>
   <view class="about-page">
-    <CustomNavBar title="关于我们" />
+    <CustomNavBar title="关于我们" :showBack="true" />
 
     <view class="about-body">
 
